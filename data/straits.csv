@@ -1,0 +1,12 @@
+name,endpoint_a,endpoint_b,capacity,distance_nm,transit_days
+Hormuz,SAU,IRN,200,50,0.5
+Hormuz-ARE,ARE,IRN,150,40,0.4
+Bab-el-Mandeb,SAU,EGY,120,1500,5.0
+Suez,EGY,TUR,100,1200,4.0
+Bosphorus,TUR,ESP,80,1800,6.0
+Gibraltar,ESP,GBR,150,1200,4.0
+Dover,GBR,ESP,60,500,1.5
+Malacca,IND,SGP,180,1600,5.5
+IndianOcean-IND,IRN,IND,200,1400,5.0
+SouthChinaSea,SGP,CHN,160,1500,5.0
+CapeOfGoodHope,SAU,GBR,90,6500,22.0
