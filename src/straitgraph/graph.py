@@ -13,12 +13,16 @@ class Country:
     name: str
     production_mbd: float = 0.0
     consumption_mbd: float = 0.0
+    lat: float = 0.0
+    lon: float = 0.0
 
 
 @dataclass(frozen=True)
 class Basin:
     basin_id: str
     name: str
+    lat: float = 0.0
+    lon: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -73,15 +77,20 @@ def build_oil_graph(
             demand=demand,
             production_mbd=c.production_mbd,
             consumption_mbd=c.consumption_mbd,
+            lat=c.lat,
+            lon=c.lon,
         )
 
     for b in basins:
         g.add_node(
             _bkey(b.basin_id),
             kind="basin",
+            basin_id=b.basin_id,
             name=b.name,
             supply=0.0,
             demand=0.0,
+            lat=b.lat,
+            lon=b.lon,
         )
 
     country_ids = {c.iso3 for c in countries}
@@ -159,6 +168,8 @@ def load_countries(path: Path) -> list[Country]:
             name=r["name"],
             production_mbd=float(r["production_mbd"]),
             consumption_mbd=float(r["consumption_mbd"]),
+            lat=float(r.get("lat", 0.0)),
+            lon=float(r.get("lon", 0.0)),
         )
         for r in df.to_dict(orient="records")
     ]
@@ -166,7 +177,15 @@ def load_countries(path: Path) -> list[Country]:
 
 def load_basins(path: Path) -> list[Basin]:
     df = pd.read_csv(path)
-    return [Basin(basin_id=r["basin_id"], name=r["name"]) for r in df.to_dict(orient="records")]
+    return [
+        Basin(
+            basin_id=r["basin_id"],
+            name=r["name"],
+            lat=float(r.get("lat", 0.0)),
+            lon=float(r.get("lon", 0.0)),
+        )
+        for r in df.to_dict(orient="records")
+    ]
 
 
 def load_coastlines(path: Path) -> list[Coastline]:
