@@ -58,15 +58,15 @@ export default function App() {
 
   if (error && !world) {
     return (
-      <div className="flex h-full items-center justify-center">
+      <div className="flex h-full items-center justify-center bg-white">
         <div className="max-w-md text-center">
-          <div className="mb-2 text-red-400">Failed to reach the API.</div>
-          <div className="text-sm text-slate-400">{error}</div>
-          <div className="mt-4 text-xs text-slate-500">
+          <div className="mb-2 text-red-600">Failed to reach the API.</div>
+          <div className="text-sm text-slate-500">{error}</div>
+          <div className="mt-4 text-xs text-slate-400">
             Make sure the backend is running:
             <br />
-            <code className="text-slate-300">
-              .venv/bin/uvicorn api.main:app --reload --port 8005
+            <code className="text-slate-700">
+              .venv/bin/uvicorn api.main:app --reload --port 7009
             </code>
           </div>
         </div>
@@ -83,45 +83,66 @@ export default function App() {
   }
 
   return (
-    <div className="grid h-full grid-cols-[340px_1fr_340px]">
-      <aside className="flex flex-col overflow-hidden border-r border-slate-800">
-        <ScenarioPanel
-          world={world}
-          scenario={scenario}
-          setScenario={setScenario}
-          selectedStrait={selectedStraitObj}
-          selectedCountry={selectedCountryObj}
-          onDeselect={() => {
-            setSelectedStrait(null);
-            setSelectedCountry(null);
-          }}
-        />
-      </aside>
+    <div className="flex h-full flex-col bg-white">
+      <header className="flex items-center justify-between border-b border-slate-200 bg-white px-5 py-3">
+        <div>
+          <h1 className="text-base font-semibold tracking-tight text-slate-900">
+            straitgraph
+          </h1>
+          <p className="text-[11px] text-slate-500">
+            Interactive oil-market simulation over world maritime chokepoints
+          </p>
+        </div>
+        <div className="flex items-center gap-3 text-xs text-slate-500">
+          {solving ? (
+            <span className="flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-sky-500" />
+              solving…
+            </span>
+          ) : solution ? (
+            <span className="flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-teal-500" />
+              {solution.status}
+            </span>
+          ) : null}
+        </div>
+      </header>
 
-      <main className="relative">
-        <WorldMap
-          world={world}
-          solution={solution}
-          scenario={scenario}
-          onSelectStrait={(id) => {
-            setSelectedStrait(id);
-            setSelectedCountry(null);
-          }}
-          onSelectCountry={(iso3) => {
-            setSelectedCountry(iso3);
-            setSelectedStrait(null);
-          }}
-        />
-        {solving && (
-          <div className="absolute right-4 top-4 rounded bg-slate-900/80 px-3 py-1 text-xs text-slate-300">
-            solving...
-          </div>
-        )}
-      </main>
+      <div className="grid flex-1 grid-cols-[320px_1fr_320px] overflow-hidden">
+        <aside className="overflow-hidden border-r border-slate-200 bg-[#f8fbfd]">
+          <ScenarioPanel
+            world={world}
+            scenario={scenario}
+            setScenario={setScenario}
+            selectedStrait={selectedStraitObj}
+            selectedCountry={selectedCountryObj}
+            onDeselect={() => {
+              setSelectedStrait(null);
+              setSelectedCountry(null);
+            }}
+          />
+        </aside>
 
-      <aside className="overflow-hidden border-l border-slate-800">
-        <ResultsPanel world={world} solution={solution} />
-      </aside>
+        <main className="relative">
+          <WorldMap
+            world={world}
+            solution={solution}
+            scenario={scenario}
+            onSelectStrait={(id) => {
+              setSelectedStrait(id);
+              setSelectedCountry(null);
+            }}
+            onSelectCountry={(iso3) => {
+              setSelectedCountry(iso3);
+              setSelectedStrait(null);
+            }}
+          />
+        </main>
+
+        <aside className="overflow-hidden border-l border-slate-200 bg-[#f8fbfd]">
+          <ResultsPanel world={world} solution={solution} />
+        </aside>
+      </div>
     </div>
   );
 }

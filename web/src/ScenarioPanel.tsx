@@ -20,38 +20,33 @@ export default function ScenarioPanel({
   onDeselect,
 }: Props) {
   return (
-    <div className="flex h-full flex-col overflow-y-auto p-4">
-      <h1 className="text-lg font-semibold">Oil market scenario</h1>
-      <p className="mt-1 text-xs text-slate-400">
+    <div className="flex h-full flex-col overflow-y-auto p-5">
+      <SectionHeader title="Scenario">
+        <button
+          onClick={() => setScenario({ ...EMPTY_SCENARIO })}
+          className="text-xs text-slate-500 hover:text-sky-600"
+        >
+          reset all
+        </button>
+      </SectionHeader>
+      <p className="mt-1 text-xs text-slate-500">
         Click a strait or country on the map to edit it. The model re-solves
         live.
       </p>
 
-      <section className="mt-5">
-        <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-            Preset scenarios
-          </h2>
+      <SectionHeader title="Presets" className="mt-6" />
+      <div className="mt-2 flex flex-col gap-1.5">
+        {PRESETS.map((p) => (
           <button
-            onClick={() => setScenario({ ...EMPTY_SCENARIO })}
-            className="text-xs text-slate-400 hover:text-slate-200"
+            key={p.id}
+            onClick={() => setScenario(p.build())}
+            className="rounded-md border border-slate-200 bg-white px-3 py-2 text-left text-sm text-slate-700 transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-900"
+            title={p.description}
           >
-            reset
+            {p.label}
           </button>
-        </div>
-        <div className="flex flex-col gap-1.5">
-          {PRESETS.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => setScenario(p.build())}
-              className="rounded border border-slate-800 bg-slate-900 px-3 py-2 text-left text-sm hover:border-slate-600 hover:bg-slate-800"
-              title={p.description}
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
-      </section>
+        ))}
+      </div>
 
       {selectedStrait && (
         <StraitEditor
@@ -71,7 +66,32 @@ export default function ScenarioPanel({
         />
       )}
 
-      <ActiveEditsSummary world={world} scenario={scenario} setScenario={setScenario} />
+      <ActiveEditsSummary
+        world={world}
+        scenario={scenario}
+        setScenario={setScenario}
+      />
+    </div>
+  );
+}
+
+function SectionHeader({
+  title,
+  children,
+  className = "",
+}: {
+  title: string;
+  children?: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`flex items-center justify-between border-b border-slate-200 pb-1.5 ${className}`}
+    >
+      <h2 className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">
+        {title}
+      </h2>
+      {children}
     </div>
   );
 }
@@ -94,12 +114,15 @@ function StraitEditor({
 
   const setCap = (v: number) => {
     const overrides = { ...scenario.strait_capacity_overrides };
-    if (Math.abs(v - strait.capacity_mbd) < 0.01) delete overrides[strait.strait_id];
+    if (Math.abs(v - strait.capacity_mbd) < 0.01)
+      delete overrides[strait.strait_id];
     else overrides[strait.strait_id] = v;
     setScenario({
       ...scenario,
       strait_capacity_overrides: overrides,
-      closed_straits: scenario.closed_straits.filter((s) => s !== strait.strait_id),
+      closed_straits: scenario.closed_straits.filter(
+        (s) => s !== strait.strait_id,
+      ),
     });
   };
 
@@ -107,7 +130,9 @@ function StraitEditor({
     if (isClosed) {
       setScenario({
         ...scenario,
-        closed_straits: scenario.closed_straits.filter((s) => s !== strait.strait_id),
+        closed_straits: scenario.closed_straits.filter(
+          (s) => s !== strait.strait_id,
+        ),
       });
     } else {
       setScenario({
@@ -118,20 +143,29 @@ function StraitEditor({
   };
 
   return (
-    <section className="mt-6 rounded border border-slate-700 bg-slate-900 p-3">
-      <div className="mb-2 flex items-center justify-between">
+    <section className="mt-6 rounded-lg border border-sky-200 bg-white p-3 shadow-sm">
+      <div className="mb-2 flex items-start justify-between">
         <div>
-          <h3 className="text-sm font-semibold">{strait.name}</h3>
-          <div className="text-xs text-slate-400">
+          <h3 className="text-sm font-semibold text-slate-900">
+            {strait.name}
+          </h3>
+          <div className="text-[10px] uppercase tracking-wider text-slate-500">
             {strait.kind} · {strait.transit_days.toFixed(1)} days
           </div>
         </div>
-        <button onClick={onClose} className="text-xs text-slate-500 hover:text-slate-300">
-          close
+        <button
+          onClick={onClose}
+          className="text-slate-400 hover:text-slate-700"
+          aria-label="close"
+        >
+          ✕
         </button>
       </div>
-      <label className="block text-xs text-slate-400">
-        Capacity: {isClosed ? "closed" : `${current.toFixed(1)} mb/d`}
+      <label className="block text-xs text-slate-600">
+        Capacity:{" "}
+        <span className="font-mono text-slate-900">
+          {isClosed ? "closed" : `${current.toFixed(1)} mb/d`}
+        </span>
       </label>
       <input
         type="range"
@@ -143,13 +177,13 @@ function StraitEditor({
         onChange={(e) => setCap(parseFloat(e.target.value))}
         className="mt-1 w-full"
       />
-      <div className="mt-2 flex gap-2">
+      <div className="mt-3 flex gap-2">
         <button
           onClick={toggleClose}
-          className={`rounded px-2 py-1 text-xs ${
+          className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
             isClosed
-              ? "bg-red-900 text-red-200 hover:bg-red-800"
-              : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+              ? "bg-red-100 text-red-700 hover:bg-red-200"
+              : "bg-slate-100 text-slate-700 hover:bg-slate-200"
           }`}
         >
           {isClosed ? "reopen" : "close strait"}
@@ -157,9 +191,9 @@ function StraitEditor({
         {override !== undefined && (
           <button
             onClick={() => setCap(strait.capacity_mbd)}
-            className="rounded bg-slate-800 px-2 py-1 text-xs text-slate-300 hover:bg-slate-700"
+            className="rounded-md bg-slate-100 px-2.5 py-1 text-xs text-slate-700 hover:bg-slate-200"
           >
-            reset capacity
+            reset
           </button>
         )}
       </div>
@@ -179,9 +213,11 @@ function CountryEditor({
   onClose: () => void;
 }) {
   const prod =
-    scenario.country_production_overrides[country.iso3] ?? country.production_mbd;
+    scenario.country_production_overrides[country.iso3] ??
+    country.production_mbd;
   const cons =
-    scenario.country_consumption_overrides[country.iso3] ?? country.consumption_mbd;
+    scenario.country_consumption_overrides[country.iso3] ??
+    country.consumption_mbd;
 
   const setProd = (v: number) => {
     const o = { ...scenario.country_production_overrides };
@@ -198,19 +234,31 @@ function CountryEditor({
 
   const prodMax = Math.max(country.production_mbd * 2, 5);
   const consMax = Math.max(country.consumption_mbd * 2, 5);
+  const net = prod - cons;
 
   return (
-    <section className="mt-6 rounded border border-slate-700 bg-slate-900 p-3">
-      <div className="mb-2 flex items-center justify-between">
-        <h3 className="text-sm font-semibold">
-          {country.name} ({country.iso3})
-        </h3>
-        <button onClick={onClose} className="text-xs text-slate-500 hover:text-slate-300">
-          close
+    <section className="mt-6 rounded-lg border border-sky-200 bg-white p-3 shadow-sm">
+      <div className="mb-2 flex items-start justify-between">
+        <div>
+          <h3 className="text-sm font-semibold text-slate-900">
+            {country.name}
+          </h3>
+          <div className="text-[10px] uppercase tracking-wider text-slate-500">
+            {country.iso3}
+          </div>
+        </div>
+        <button
+          onClick={onClose}
+          className="text-slate-400 hover:text-slate-700"
+          aria-label="close"
+        >
+          ✕
         </button>
       </div>
-      <label className="block text-xs text-slate-400">
-        Production: {prod.toFixed(2)} mb/d
+
+      <label className="block text-xs text-slate-600">
+        Production:{" "}
+        <span className="font-mono text-slate-900">{prod.toFixed(2)} mb/d</span>
       </label>
       <input
         type="range"
@@ -221,8 +269,10 @@ function CountryEditor({
         onChange={(e) => setProd(parseFloat(e.target.value))}
         className="mt-1 w-full"
       />
-      <label className="mt-2 block text-xs text-slate-400">
-        Consumption: {cons.toFixed(2)} mb/d
+
+      <label className="mt-3 block text-xs text-slate-600">
+        Consumption:{" "}
+        <span className="font-mono text-slate-900">{cons.toFixed(2)} mb/d</span>
       </label>
       <input
         type="range"
@@ -233,8 +283,13 @@ function CountryEditor({
         onChange={(e) => setCons(parseFloat(e.target.value))}
         className="mt-1 w-full"
       />
-      <div className="mt-2 text-xs text-slate-400">
-        net: {(prod - cons).toFixed(2)} mb/d ({prod > cons ? "exporter" : "importer"})
+
+      <div
+        className={`mt-3 text-xs ${
+          net > 0 ? "text-teal-700" : net < 0 ? "text-orange-700" : "text-slate-500"
+        }`}
+      >
+        net: {net.toFixed(2)} mb/d ({net > 0 ? "exporter" : "importer"})
       </div>
     </section>
   );
@@ -249,8 +304,12 @@ function ActiveEditsSummary({
   scenario: Scenario;
   setScenario: (s: Scenario) => void;
 }) {
-  const straitMap = Object.fromEntries(world.straits.map((s) => [s.strait_id, s]));
-  const countryMap = Object.fromEntries(world.countries.map((c) => [c.iso3, c]));
+  const straitMap = Object.fromEntries(
+    world.straits.map((s) => [s.strait_id, s]),
+  );
+  const countryMap = Object.fromEntries(
+    world.countries.map((c) => [c.iso3, c]),
+  );
   const hasEdits =
     scenario.closed_straits.length > 0 ||
     Object.keys(scenario.strait_capacity_overrides).length > 0 ||
@@ -260,28 +319,34 @@ function ActiveEditsSummary({
 
   return (
     <section className="mt-6">
-      <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
-        Active edits
-      </h2>
-      <ul className="space-y-1 text-xs">
+      <SectionHeader title="Active edits" />
+      <ul className="mt-2 space-y-1 text-xs">
         {scenario.closed_straits.map((sid) => (
-          <li key={`closed-${sid}`} className="flex items-center justify-between">
-            <span className="text-red-300">{straitMap[sid]?.name ?? sid}: closed</span>
+          <li
+            key={`closed-${sid}`}
+            className="flex items-center justify-between rounded bg-red-50 px-2 py-1 text-red-700"
+          >
+            <span>{straitMap[sid]?.name ?? sid}: closed</span>
             <button
               onClick={() =>
                 setScenario({
                   ...scenario,
-                  closed_straits: scenario.closed_straits.filter((s) => s !== sid),
+                  closed_straits: scenario.closed_straits.filter(
+                    (s) => s !== sid,
+                  ),
                 })
               }
-              className="text-slate-500 hover:text-slate-300"
+              className="text-red-400 hover:text-red-700"
             >
               ✕
             </button>
           </li>
         ))}
         {Object.entries(scenario.strait_capacity_overrides).map(([sid, v]) => (
-          <li key={`cap-${sid}`} className="flex items-center justify-between">
+          <li
+            key={`cap-${sid}`}
+            className="flex items-center justify-between rounded bg-sky-50 px-2 py-1 text-sky-800"
+          >
             <span>
               {straitMap[sid]?.name ?? sid}: {v.toFixed(1)} mb/d
             </span>
@@ -291,46 +356,59 @@ function ActiveEditsSummary({
                 delete o[sid];
                 setScenario({ ...scenario, strait_capacity_overrides: o });
               }}
-              className="text-slate-500 hover:text-slate-300"
+              className="text-sky-400 hover:text-sky-700"
             >
               ✕
             </button>
           </li>
         ))}
-        {Object.entries(scenario.country_production_overrides).map(([iso3, v]) => (
-          <li key={`prod-${iso3}`} className="flex items-center justify-between">
-            <span>
-              {countryMap[iso3]?.name ?? iso3} production: {v.toFixed(2)} mb/d
-            </span>
-            <button
-              onClick={() => {
-                const o = { ...scenario.country_production_overrides };
-                delete o[iso3];
-                setScenario({ ...scenario, country_production_overrides: o });
-              }}
-              className="text-slate-500 hover:text-slate-300"
+        {Object.entries(scenario.country_production_overrides).map(
+          ([iso3, v]) => (
+            <li
+              key={`prod-${iso3}`}
+              className="flex items-center justify-between rounded bg-sky-50 px-2 py-1 text-sky-800"
             >
-              ✕
-            </button>
-          </li>
-        ))}
-        {Object.entries(scenario.country_consumption_overrides).map(([iso3, v]) => (
-          <li key={`cons-${iso3}`} className="flex items-center justify-between">
-            <span>
-              {countryMap[iso3]?.name ?? iso3} consumption: {v.toFixed(2)} mb/d
-            </span>
-            <button
-              onClick={() => {
-                const o = { ...scenario.country_consumption_overrides };
-                delete o[iso3];
-                setScenario({ ...scenario, country_consumption_overrides: o });
-              }}
-              className="text-slate-500 hover:text-slate-300"
+              <span>
+                {countryMap[iso3]?.name ?? iso3} production: {v.toFixed(2)} mb/d
+              </span>
+              <button
+                onClick={() => {
+                  const o = { ...scenario.country_production_overrides };
+                  delete o[iso3];
+                  setScenario({ ...scenario, country_production_overrides: o });
+                }}
+                className="text-sky-400 hover:text-sky-700"
+              >
+                ✕
+              </button>
+            </li>
+          ),
+        )}
+        {Object.entries(scenario.country_consumption_overrides).map(
+          ([iso3, v]) => (
+            <li
+              key={`cons-${iso3}`}
+              className="flex items-center justify-between rounded bg-sky-50 px-2 py-1 text-sky-800"
             >
-              ✕
-            </button>
-          </li>
-        ))}
+              <span>
+                {countryMap[iso3]?.name ?? iso3} consumption: {v.toFixed(2)} mb/d
+              </span>
+              <button
+                onClick={() => {
+                  const o = { ...scenario.country_consumption_overrides };
+                  delete o[iso3];
+                  setScenario({
+                    ...scenario,
+                    country_consumption_overrides: o,
+                  });
+                }}
+                className="text-sky-400 hover:text-sky-700"
+              >
+                ✕
+              </button>
+            </li>
+          ),
+        )}
       </ul>
     </section>
   );

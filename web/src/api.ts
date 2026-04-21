@@ -1,6 +1,6 @@
 import type { Scenario, Solution, World } from "./types";
 
-const API_BASE = "http://localhost:8005";
+const API_BASE = "http://localhost:7009";
 
 export async function fetchWorld(): Promise<World> {
   const r = await fetch(`${API_BASE}/world`);

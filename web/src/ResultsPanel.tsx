@@ -8,14 +8,19 @@ interface Props {
 export default function ResultsPanel({ world, solution }: Props) {
   if (!solution) {
     return (
-      <div className="p-4 text-sm text-slate-400">Waiting for solve...</div>
+      <div className="p-5 text-sm text-slate-400">Waiting for solve…</div>
     );
   }
 
-  const countryMap = Object.fromEntries(world.countries.map((c) => [c.iso3, c]));
-  const straitMap = Object.fromEntries(world.straits.map((s) => [s.strait_id, s]));
+  const countryMap = Object.fromEntries(
+    world.countries.map((c) => [c.iso3, c]),
+  );
+  const straitMap = Object.fromEntries(
+    world.straits.map((s) => [s.strait_id, s]),
+  );
 
-  const statusIsOk = solution.status === "optimal" || solution.status === "optimal_inaccurate";
+  const statusIsOk =
+    solution.status === "optimal" || solution.status === "optimal_inaccurate";
 
   const strictCountryPrices = Object.entries(solution.node_prices).filter(
     ([k]) => countryMap[k],
@@ -27,13 +32,13 @@ export default function ResultsPanel({ world, solution }: Props) {
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5);
 
-  const straitImportanceSorted = Object.entries(solution.strait_importance).sort(
-    (a, b) => {
-      const av = a[1] === null ? Infinity : a[1];
-      const bv = b[1] === null ? Infinity : b[1];
-      return bv - av;
-    },
-  );
+  const straitImportanceSorted = Object.entries(
+    solution.strait_importance,
+  ).sort((a, b) => {
+    const av = a[1] === null ? Infinity : a[1];
+    const bv = b[1] === null ? Infinity : b[1];
+    return bv - av;
+  });
 
   const topFlows = [...solution.flows]
     .filter((f) => f.kind === "strait")
@@ -41,109 +46,148 @@ export default function ResultsPanel({ world, solution }: Props) {
     .slice(0, 8);
 
   return (
-    <div className="flex h-full flex-col overflow-y-auto p-4">
-      <h2 className="text-lg font-semibold">Market outcome</h2>
-
+    <div className="flex h-full flex-col overflow-y-auto p-5">
       {!statusIsOk && (
-        <div className="mt-3 rounded border border-red-800 bg-red-950 p-2 text-xs text-red-200">
-          LP status: {solution.status}. The scenario has no feasible shipping
-          plan — at least one demand cannot be met given the current capacities.
+        <div className="mb-3 rounded-md border border-red-200 bg-red-50 p-2.5 text-xs text-red-800">
+          <div className="font-semibold">LP status: {solution.status}</div>
+          <div className="mt-0.5 text-red-700">
+            No feasible shipping plan — at least one demand cannot be met given
+            current capacities.
+          </div>
         </div>
       )}
 
-      <div className="mt-3 grid grid-cols-2 gap-2">
-        <Stat label="Total cost" value={`${solution.total_cost.toFixed(1)}`} sub="barrel-days" />
-        <Stat label="Supply = Demand" value={`${solution.total_supply.toFixed(1)} mb/d`} sub="balanced" />
+      <div className="grid grid-cols-2 gap-2">
+        <Stat
+          label="Total cost"
+          value={solution.total_cost.toFixed(1)}
+          sub="barrel-days"
+        />
+        <Stat
+          label="Supply = demand"
+          value={`${solution.total_supply.toFixed(1)}`}
+          sub="mb/d"
+        />
       </div>
 
-      <Section title="Top strait flows (mb/d)">
-        <table className="w-full text-xs">
-          <tbody>
-            {topFlows.map((f) => {
-              const s = straitMap[f.strait_id ?? ""];
-              return (
-                <tr key={`${f.source}-${f.target}`} className="border-b border-slate-800">
-                  <td className="py-1 text-slate-300">{s?.name ?? f.strait_id}</td>
-                  <td className="py-1 text-right font-mono">{f.mbd.toFixed(2)}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+      <Section title="Top strait flows">
+        <DataTable>
+          {topFlows.map((f) => {
+            const s = straitMap[f.strait_id ?? ""];
+            return (
+              <Row key={`${f.source}-${f.target}`}>
+                <span className="truncate">{s?.name ?? f.strait_id}</span>
+                <span className="font-mono">{f.mbd.toFixed(2)}</span>
+              </Row>
+            );
+          })}
+        </DataTable>
       </Section>
 
-      <Section title="Strait importance (Δ cost if closed)">
-        <table className="w-full text-xs">
-          <tbody>
-            {straitImportanceSorted.map(([sid, v]) => {
-              const s = straitMap[sid];
-              return (
-                <tr key={sid} className="border-b border-slate-800">
-                  <td className="py-1 text-slate-300">{s?.name ?? sid}</td>
-                  <td className="py-1 text-right font-mono">
-                    {v === null ? (
-                      <span className="text-red-300">infeasible</span>
-                    ) : (
-                      `+${v.toFixed(2)}`
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+      <Section title="Strait importance">
+        <div className="mb-1 text-[10px] text-slate-500">
+          Δ shipping cost if the strait closes
+        </div>
+        <DataTable>
+          {straitImportanceSorted.map(([sid, v]) => {
+            const s = straitMap[sid];
+            return (
+              <Row key={sid}>
+                <span className="truncate">{s?.name ?? sid}</span>
+                <span className="font-mono">
+                  {v === null ? (
+                    <span className="text-red-600">infeasible</span>
+                  ) : (
+                    `+${v.toFixed(2)}`
+                  )}
+                </span>
+              </Row>
+            );
+          })}
+        </DataTable>
       </Section>
 
-      <Section title="Cheapest sources (node price)">
-        <table className="w-full text-xs">
-          <tbody>
-            {topSources.map(([iso3, p]) => (
-              <tr key={iso3} className="border-b border-slate-800">
-                <td className="py-1 text-slate-300">
-                  {countryMap[iso3]?.name ?? iso3}
-                </td>
-                <td className="py-1 text-right font-mono">{p.toFixed(2)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <Section title="Cheapest sources">
+        <div className="mb-1 text-[10px] text-slate-500">
+          Node price (ship-days per mb/d of net supply)
+        </div>
+        <DataTable>
+          {topSources.map(([iso3, p]) => (
+            <Row key={iso3}>
+              <span className="truncate">
+                {countryMap[iso3]?.name ?? iso3}
+              </span>
+              <span className="font-mono text-teal-700">{p.toFixed(2)}</span>
+            </Row>
+          ))}
+        </DataTable>
       </Section>
 
-      <Section title="Most expensive sinks (node price)">
-        <table className="w-full text-xs">
-          <tbody>
-            {topSinks.map(([iso3, p]) => (
-              <tr key={iso3} className="border-b border-slate-800">
-                <td className="py-1 text-slate-300">
-                  {countryMap[iso3]?.name ?? iso3}
-                </td>
-                <td className="py-1 text-right font-mono">{p.toFixed(2)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <Section title="Most expensive sinks">
+        <DataTable>
+          {topSinks.map(([iso3, p]) => (
+            <Row key={iso3}>
+              <span className="truncate">
+                {countryMap[iso3]?.name ?? iso3}
+              </span>
+              <span className="font-mono text-orange-700">
+                {p.toFixed(2)}
+              </span>
+            </Row>
+          ))}
+        </DataTable>
       </Section>
     </div>
   );
 }
 
-function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
+function Stat({
+  label,
+  value,
+  sub,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+}) {
   return (
-    <div className="rounded border border-slate-800 bg-slate-900 p-2">
-      <div className="text-[10px] uppercase tracking-wider text-slate-500">{label}</div>
-      <div className="font-mono text-lg">{value}</div>
-      {sub && <div className="text-[10px] text-slate-500">{sub}</div>}
+    <div className="rounded-lg border border-slate-200 bg-white p-2.5">
+      <div className="text-[9px] font-semibold uppercase tracking-wider text-slate-500">
+        {label}
+      </div>
+      <div className="mt-0.5 font-mono text-xl font-semibold tabular-nums text-slate-900">
+        {value}
+      </div>
+      {sub && <div className="text-[10px] text-slate-400">{sub}</div>}
     </div>
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
-    <section className="mt-5">
-      <h3 className="mb-1 text-xs font-semibold uppercase tracking-wider text-slate-400">
+    <section className="mt-6">
+      <h3 className="border-b border-slate-200 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">
         {title}
       </h3>
-      {children}
+      <div className="mt-2">{children}</div>
     </section>
+  );
+}
+
+function DataTable({ children }: { children: React.ReactNode }) {
+  return <div className="space-y-0.5 text-xs">{children}</div>;
+}
+
+function Row({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-2 border-b border-slate-100 py-1 text-slate-700 last:border-b-0">
+      {children}
+    </div>
   );
 }

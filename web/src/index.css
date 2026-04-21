@@ -4,27 +4,111 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --panel-bg: #f8fbfd;
+  --panel-border: #dbeaf2;
+  --accent: #0284c7;
+}
+
 html,
 body,
 #root {
   height: 100%;
   margin: 0;
+  background: #ffffff;
+  color: #0f172a;
 }
 
+body {
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+/* Popup styling */
 .maplibregl-popup {
-  max-width: 280px;
+  max-width: 260px;
 }
-
 .maplibregl-popup-content {
-  background: #0f172a;
-  color: #e2e8f0;
-  border: 1px solid #334155;
-  border-radius: 6px;
+  background: #ffffff;
+  color: #0f172a;
+  border: 1px solid #dbeaf2;
+  border-radius: 8px;
   font-size: 12px;
   padding: 10px 12px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+}
+.maplibregl-popup-tip {
+  border-top-color: #ffffff !important;
+  border-bottom-color: #ffffff !important;
+}
+.popup-title {
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #0f172a;
+}
+.popup-iso {
+  font-weight: 400;
+  color: #64748b;
+  font-size: 10px;
+  margin-left: 4px;
+}
+.popup-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: #475569;
+  font-variant-numeric: tabular-nums;
+}
+.popup-row span:last-child {
+  color: #0f172a;
+  font-weight: 500;
+}
+.popup-row .exporter {
+  color: #0d9488;
+}
+.popup-row .importer {
+  color: #ea580c;
+}
+.popup-note {
+  margin-top: 4px;
+  font-size: 10px;
+  color: #64748b;
+  font-style: italic;
 }
 
-.maplibregl-popup-tip {
-  border-top-color: #0f172a !important;
-  border-bottom-color: #0f172a !important;
+.maplibregl-ctrl-attrib {
+  background: rgba(255, 255, 255, 0.8) !important;
+  font-size: 10px;
+}
+
+/* Custom slider */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  background: #dbeaf2;
+  border-radius: 2px;
+  outline: none;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #0284c7;
+  border: 2px solid #ffffff;
+  box-shadow: 0 1px 3px rgba(2, 132, 199, 0.4);
+  cursor: pointer;
+}
+input[type="range"]::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #0284c7;
+  border: 2px solid #ffffff;
+  cursor: pointer;
+}
+input[type="range"]:disabled::-webkit-slider-thumb {
+  background: #cbd5e1;
 }

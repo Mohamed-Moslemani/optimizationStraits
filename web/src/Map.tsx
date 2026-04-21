@@ -1,6 +1,7 @@
 import maplibregl from "maplibre-gl";
 import { useEffect, useRef } from "react";
-import type { Basin, Scenario, Solution, Strait, World } from "./types";
+import { STRAIT_PATHS } from "./straitPaths";
+import type { Scenario, Solution, Strait, World } from "./types";
 
 interface Props {
   world: World;
@@ -10,22 +11,27 @@ interface Props {
   onSelectCountry: (iso3: string) => void;
 }
 
-const MAP_STYLE = "https://demotiles.maplibre.org/style.json";
+// Free, no-auth light basemap. Ocean is pale blue, land is near-white with
+// subtle country borders. Perfect for overlaying our data.
+const MAP_STYLE =
+  "https://basemaps.cartocdn.com/gl/positron-nolabels-gl-style/style.json";
 
-function basinLookup(basins: Basin[]): Record<string, Basin> {
-  return Object.fromEntries(basins.map((b) => [b.basin_id, b]));
+function defaultPath(s: Strait, basinCoord: (id: string) => [number, number]) {
+  return [basinCoord(s.basin_a), basinCoord(s.basin_b)];
 }
 
 function straitGeoJson(
-  straits: Strait[],
-  basins: Record<string, Basin>,
+  world: World,
   solution: Solution | null,
   scenario: Scenario,
 ) {
+  const basinCoord = (id: string): [number, number] => {
+    const b = world.basins.find((x) => x.basin_id === id);
+    return b ? [b.lon, b.lat] : [0, 0];
+  };
   const closed = new Set(scenario.closed_straits);
-  const features = straits.map((s) => {
-    const a = basins[s.basin_a];
-    const b = basins[s.basin_b];
+  const features = world.straits.map((s) => {
+    const path = STRAIT_PATHS[s.strait_id] ?? defaultPath(s, basinCoord);
     const flow = solution?.strait_flows[s.strait_id] ?? 0;
     const capacity =
       scenario.strait_capacity_overrides[s.strait_id] ?? s.capacity_mbd;
@@ -51,20 +57,18 @@ function straitGeoJson(
       },
       geometry: {
         type: "LineString" as const,
-        coordinates: [
-          [a.lon, a.lat],
-          [b.lon, b.lat],
-        ],
+        coordinates: path,
       },
     };
   });
-  return {
-    type: "FeatureCollection" as const,
-    features,
-  };
+  return { type: "FeatureCollection" as const, features };
 }
 
-function countryGeoJson(world: World, solution: Solution | null, scenario: Scenario) {
+function countryGeoJson(
+  world: World,
+  solution: Solution | null,
+  scenario: Scenario,
+) {
   const features = world.countries.map((c) => {
     const prod =
       scenario.country_production_overrides[c.iso3] ?? c.production_mbd;
@@ -103,43 +107,145 @@ export default function WorldMap({
     const map = new maplibregl.Map({
       container: containerRef.current,
       style: MAP_STYLE,
-      center: [30, 25],
-      zoom: 1.6,
+      center: [30, 20],
+      zoom: 1.9,
       attributionControl: { compact: true },
+      maxZoom: 6,
+      minZoom: 1.2,
     });
     mapRef.current = map;
 
     map.on("load", () => {
-      map.addSource("straits", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
-      map.addSource("countries", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+      map.addSource("straits", {
+        type: "geojson",
+        data: { type: "FeatureCollection", features: [] },
+        lineMetrics: true,
+      });
+      map.addSource("countries", {
+        type: "geojson",
+        data: { type: "FeatureCollection", features: [] },
+      });
 
+      // Strait glow (soft halo underneath)
       map.addLayer({
-        id: "strait-lines",
+        id: "strait-glow",
         type: "line",
         source: "straits",
+        layout: { "line-join": "round", "line-cap": "round" },
         paint: {
           "line-color": [
             "case",
-            ["get", "closed"], "#ef4444",
+            ["get", "closed"],
+            "#dc2626",
             ["==", ["get", "kind"], "chokepoint"],
             [
-              "interpolate", ["linear"], ["get", "utilisation"],
-              0, "#475569",
-              0.5, "#f59e0b",
-              1, "#ef4444",
+              "interpolate",
+              ["linear"],
+              ["get", "utilisation"],
+              0,
+              "#94a3b8",
+              0.5,
+              "#f59e0b",
+              1,
+              "#ef4444",
             ],
-            "#334155",
+            "#94a3b8",
           ],
           "line-width": [
             "interpolate",
             ["linear"],
             ["get", "flow"],
-            0, 1.2,
-            5, 2.5,
-            15, 5,
-            25, 7.5,
+            0,
+            2,
+            5,
+            6,
+            15,
+            12,
+            25,
+            16,
           ],
-          "line-opacity": 0.9,
+          "line-opacity": 0.18,
+          "line-blur": 6,
+        },
+      });
+
+      // Main strait line
+      map.addLayer({
+        id: "strait-lines",
+        type: "line",
+        source: "straits",
+        layout: { "line-join": "round", "line-cap": "round" },
+        paint: {
+          "line-color": [
+            "case",
+            ["get", "closed"],
+            "#dc2626",
+            ["==", ["get", "kind"], "chokepoint"],
+            [
+              "interpolate",
+              ["linear"],
+              ["get", "utilisation"],
+              0,
+              "#64748b",
+              0.5,
+              "#f59e0b",
+              1,
+              "#ef4444",
+            ],
+            "#94a3b8",
+          ],
+          "line-width": [
+            "interpolate",
+            ["linear"],
+            ["get", "flow"],
+            0,
+            1.2,
+            5,
+            2.2,
+            15,
+            3.6,
+            25,
+            4.8,
+          ],
+          "line-dasharray": [
+            "case",
+            ["==", ["get", "kind"], "open"],
+            ["literal", [4, 3]],
+            ["literal", [1, 0]],
+          ],
+          "line-opacity": 0.95,
+        },
+      });
+
+      // Country markers
+      map.addLayer({
+        id: "country-halo",
+        type: "circle",
+        source: "countries",
+        paint: {
+          "circle-radius": [
+            "interpolate",
+            ["linear"],
+            ["abs", ["get", "net"]],
+            0,
+            4,
+            2,
+            8,
+            8,
+            14,
+            15,
+            20,
+          ],
+          "circle-color": [
+            "case",
+            [">", ["get", "net"], 0.1],
+            "#0d9488",
+            ["<", ["get", "net"], -0.1],
+            "#ea580c",
+            "#cbd5e1",
+          ],
+          "circle-opacity": 0.12,
+          "circle-blur": 1.2,
         },
       });
 
@@ -149,22 +255,29 @@ export default function WorldMap({
         source: "countries",
         paint: {
           "circle-radius": [
-            "interpolate", ["linear"],
+            "interpolate",
+            ["linear"],
             ["abs", ["get", "net"]],
-            0, 3,
-            2, 6,
-            8, 11,
-            15, 16,
+            0,
+            3,
+            2,
+            5.5,
+            8,
+            9.5,
+            15,
+            13,
           ],
           "circle-color": [
             "case",
-            [">", ["get", "net"], 0.1], "#22c55e",
-            ["<", ["get", "net"], -0.1], "#3b82f6",
-            "#64748b",
+            [">", ["get", "net"], 0.1],
+            "#14b8a6",
+            ["<", ["get", "net"], -0.1],
+            "#f97316",
+            "#94a3b8",
           ],
-          "circle-opacity": 0.85,
-          "circle-stroke-color": "#0f172a",
-          "circle-stroke-width": 1,
+          "circle-opacity": 0.9,
+          "circle-stroke-color": "#ffffff",
+          "circle-stroke-width": 1.5,
         },
       });
 
@@ -177,12 +290,19 @@ export default function WorldMap({
           "text-size": 10,
           "text-anchor": "top",
           "text-offset": [0, 0.8],
+          "text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"],
         },
         paint: {
-          "text-color": "#cbd5e1",
-          "text-halo-color": "#020617",
-          "text-halo-width": 1.2,
+          "text-color": "#334155",
+          "text-halo-color": "#ffffff",
+          "text-halo-width": 1.5,
         },
+      });
+
+      const popup = new maplibregl.Popup({
+        closeButton: false,
+        closeOnClick: false,
+        offset: 10,
       });
 
       map.on("click", "strait-lines", (e) => {
@@ -193,12 +313,17 @@ export default function WorldMap({
         const f = e.features?.[0];
         if (f) onSelectCountry(f.properties!.iso3 as string);
       });
-      map.on("mouseenter", "strait-lines", () => (map.getCanvas().style.cursor = "pointer"));
-      map.on("mouseleave", "strait-lines", () => (map.getCanvas().style.cursor = ""));
-      map.on("mouseenter", "country-circles", () => (map.getCanvas().style.cursor = "pointer"));
-      map.on("mouseleave", "country-circles", () => (map.getCanvas().style.cursor = ""));
 
-      const popup = new maplibregl.Popup({ closeButton: false, closeOnClick: false });
+      for (const layer of ["strait-lines", "country-circles"]) {
+        map.on("mouseenter", layer, () => {
+          map.getCanvas().style.cursor = "pointer";
+        });
+        map.on("mouseleave", layer, () => {
+          map.getCanvas().style.cursor = "";
+          popup.remove();
+        });
+      }
+
       map.on("mousemove", "strait-lines", (e) => {
         const f = e.features?.[0];
         if (!f) return;
@@ -206,31 +331,35 @@ export default function WorldMap({
         popup
           .setLngLat(e.lngLat)
           .setHTML(
-            `<div class="font-semibold">${p.name}</div>` +
-              `<div>flow: ${Number(p.flow).toFixed(2)} mb/d</div>` +
-              `<div>capacity: ${Number(p.capacity).toFixed(1)} mb/d</div>` +
-              (p.importanceLabel ? `<div class=\"text-xs text-slate-400\">${p.importanceLabel}</div>` : ""),
+            `<div class="popup-title">${p.name}</div>` +
+              `<div class="popup-row"><span>flow</span><span>${Number(p.flow).toFixed(2)} mb/d</span></div>` +
+              `<div class="popup-row"><span>capacity</span><span>${Number(p.capacity).toFixed(1)} mb/d</span></div>` +
+              (p.importanceLabel
+                ? `<div class="popup-note">${p.importanceLabel}</div>`
+                : ""),
           )
           .addTo(map);
       });
-      map.on("mouseleave", "strait-lines", () => popup.remove());
       map.on("mousemove", "country-circles", (e) => {
         const f = e.features?.[0];
         if (!f) return;
         const p = f.properties!;
+        const netClass = Number(p.net) > 0 ? "exporter" : "importer";
         popup
           .setLngLat(e.lngLat)
           .setHTML(
-            `<div class="font-semibold">${p.name} (${p.iso3})</div>` +
-              `<div>production: ${Number(p.production_mbd).toFixed(2)} mb/d</div>` +
-              `<div>consumption: ${Number(p.consumption_mbd).toFixed(2)} mb/d</div>` +
-              `<div>net: ${Number(p.net).toFixed(2)} mb/d</div>` +
-              (p.price ? `<div>price: ${Number(p.price).toFixed(2)}</div>` : ""),
+            `<div class="popup-title">${p.name} <span class="popup-iso">${p.iso3}</span></div>` +
+              `<div class="popup-row"><span>production</span><span>${Number(p.production_mbd).toFixed(2)} mb/d</span></div>` +
+              `<div class="popup-row"><span>consumption</span><span>${Number(p.consumption_mbd).toFixed(2)} mb/d</span></div>` +
+              `<div class="popup-row"><span>net</span><span class="${netClass}">${Number(p.net).toFixed(2)} mb/d</span></div>` +
+              (p.price
+                ? `<div class="popup-note">price ${Number(p.price).toFixed(2)}</div>`
+                : ""),
           )
           .addTo(map);
       });
-      map.on("mouseleave", "country-circles", () => popup.remove());
     });
+
     return () => {
       map.remove();
       mapRef.current = null;
@@ -238,25 +367,62 @@ export default function WorldMap({
   }, [onSelectStrait, onSelectCountry]);
 
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !map.isStyleLoaded()) {
-      // wait for load
-      const handler = () => pushData();
-      map?.once("load", handler);
-      return;
-    }
-    pushData();
-
-    function pushData() {
+    const push = () => {
       const m = mapRef.current;
       if (!m) return;
-      const basins = basinLookup(world.basins);
-      const straits = straitGeoJson(world.straits, basins, solution, scenario);
+      const straits = straitGeoJson(world, solution, scenario);
       const countries = countryGeoJson(world, solution, scenario);
-      (m.getSource("straits") as maplibregl.GeoJSONSource | undefined)?.setData(straits);
-      (m.getSource("countries") as maplibregl.GeoJSONSource | undefined)?.setData(countries);
-    }
+      (m.getSource("straits") as maplibregl.GeoJSONSource | undefined)?.setData(
+        straits,
+      );
+      (
+        m.getSource("countries") as maplibregl.GeoJSONSource | undefined
+      )?.setData(countries);
+    };
+    const m = mapRef.current;
+    if (!m) return;
+    if (m.isStyleLoaded()) push();
+    else m.once("load", push);
   }, [world, solution, scenario]);
 
-  return <div ref={containerRef} className="h-full w-full" />;
+  return (
+    <div className="relative h-full w-full">
+      <div ref={containerRef} className="h-full w-full" />
+      <MapLegend />
+    </div>
+  );
+}
+
+function MapLegend() {
+  return (
+    <div className="pointer-events-none absolute bottom-4 left-4 rounded-md border border-slate-200 bg-white/90 p-3 text-xs text-slate-700 shadow-sm backdrop-blur">
+      <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+        Legend
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="inline-block h-2.5 w-2.5 rounded-full bg-teal-500 ring-2 ring-white" />
+        exporter (net supply)
+      </div>
+      <div className="mt-1 flex items-center gap-2">
+        <span className="inline-block h-2.5 w-2.5 rounded-full bg-orange-500 ring-2 ring-white" />
+        importer (net demand)
+      </div>
+      <div className="mt-2 flex items-center gap-2">
+        <span className="inline-block h-0.5 w-6 bg-slate-400" />
+        low utilisation
+      </div>
+      <div className="mt-1 flex items-center gap-2">
+        <span className="inline-block h-0.5 w-6 bg-amber-500" />
+        medium
+      </div>
+      <div className="mt-1 flex items-center gap-2">
+        <span className="inline-block h-0.5 w-6 bg-red-500" />
+        near capacity
+      </div>
+      <div className="mt-1 flex items-center gap-2">
+        <span className="inline-block h-0.5 w-6 border-t border-dashed border-slate-400" />
+        open ocean (uncapped)
+      </div>
+    </div>
+  );
 }
