@@ -1,11 +1,39 @@
-code,name,supply,demand
-SAU,Saudi Arabia,100,0
-IRN,Iran,40,0
-ARE,United Arab Emirates,30,0
-EGY,Egypt,0,10
-TUR,Turkey,0,25
-ESP,Spain,0,20
-GBR,United Kingdom,0,30
-SGP,Singapore,0,25
-CHN,China,0,60
-IND,India,0,0
+iso3,name,production_mbd,consumption_mbd,source_prod,source_cons
+SAU,Saudi Arabia,9.6,4.0,EnergyInstitute2024,EnergyInstitute2024
+RUS,Russia,10.1,3.7,EnergyInstitute2024,EnergyInstitute2024
+USA,United States,12.9,19.0,EIA2024,EIA2024
+IRQ,Iraq,4.3,0.7,EnergyInstitute2024,EnergyInstitute2024
+IRN,Iran,3.1,1.9,EnergyInstitute2024,EnergyInstitute2024
+CAN,Canada,4.6,2.4,EnergyInstitute2024,EnergyInstitute2024
+ARE,United Arab Emirates,3.4,1.0,EnergyInstitute2024,EnergyInstitute2024
+BRA,Brazil,3.4,2.4,EnergyInstitute2024,EnergyInstitute2024
+KWT,Kuwait,2.7,0.4,EnergyInstitute2024,EnergyInstitute2024
+MEX,Mexico,1.9,1.8,EnergyInstitute2024,EnergyInstitute2024
+NOR,Norway,1.9,0.2,EnergyInstitute2024,EnergyInstitute2024
+KAZ,Kazakhstan,1.8,0.3,EnergyInstitute2024,EnergyInstitute2024
+NGA,Nigeria,1.4,0.4,EnergyInstitute2024,EnergyInstitute2024
+QAT,Qatar,1.3,0.3,EnergyInstitute2024,EnergyInstitute2024
+LBY,Libya,1.2,0.2,EnergyInstitute2024,EnergyInstitute2024
+AGO,Angola,1.1,0.1,EnergyInstitute2024,EnergyInstitute2024
+OMN,Oman,1.05,0.2,EnergyInstitute2024,EnergyInstitute2024
+DZA,Algeria,1.0,0.5,EnergyInstitute2024,EnergyInstitute2024
+COL,Colombia,0.78,0.3,EnergyInstitute2024,EnergyInstitute2024
+VEN,Venezuela,0.78,0.4,EnergyInstitute2024,EnergyInstitute2024
+CHN,China,4.2,16.4,EnergyInstitute2024,EnergyInstitute2024
+IND,India,0.7,5.3,EnergyInstitute2024,EnergyInstitute2024
+JPN,Japan,0.0,3.3,EnergyInstitute2024,EnergyInstitute2024
+KOR,South Korea,0.0,2.8,EnergyInstitute2024,EnergyInstitute2024
+DEU,Germany,0.04,2.0,EnergyInstitute2024,EnergyInstitute2024
+GBR,United Kingdom,0.78,1.4,EnergyInstitute2024,EnergyInstitute2024
+FRA,France,0.0,1.4,EnergyInstitute2024,EnergyInstitute2024
+ITA,Italy,0.1,1.2,EnergyInstitute2024,EnergyInstitute2024
+ESP,Spain,0.0,1.3,EnergyInstitute2024,EnergyInstitute2024
+NLD,Netherlands,0.1,1.1,EnergyInstitute2024,EnergyInstitute2024
+TUR,Turkey,0.1,1.0,EnergyInstitute2024,EnergyInstitute2024
+SGP,Singapore,0.0,1.4,EnergyInstitute2024,EnergyInstitute2024
+THA,Thailand,0.2,1.3,EnergyInstitute2024,EnergyInstitute2024
+IDN,Indonesia,0.7,1.6,EnergyInstitute2024,EnergyInstitute2024
+EGY,Egypt,0.6,0.7,EnergyInstitute2024,EnergyInstitute2024
+YEM,Yemen,0.05,0.1,EnergyInstitute2024,EnergyInstitute2024
+DNK,Denmark,0.06,0.15,EnergyInstitute2024,EnergyInstitute2024
+POL,Poland,0.03,0.6,EnergyInstitute2024,EnergyInstitute2024

@@ -1,12 +1,16 @@
-name,endpoint_a,endpoint_b,capacity,distance_nm,transit_days
-Hormuz,SAU,IRN,200,50,0.5
-Hormuz-ARE,ARE,IRN,150,40,0.4
-Bab-el-Mandeb,SAU,EGY,120,1500,5.0
-Suez,EGY,TUR,100,1200,4.0
-Bosphorus,TUR,ESP,80,1800,6.0
-Gibraltar,ESP,GBR,150,1200,4.0
-Dover,GBR,ESP,60,500,1.5
-Malacca,IND,SGP,180,1600,5.5
-IndianOcean-IND,IRN,IND,200,1400,5.0
-SouthChinaSea,SGP,CHN,160,1500,5.0
-CapeOfGoodHope,SAU,GBR,90,6500,22.0
+strait_id,name,basin_a,basin_b,kind,capacity_mbd,distance_nm,transit_days,notes,source
+hormuz,Strait of Hormuz,PG,IO,chokepoint,25.0,150,0.5,~21 mb/d crude+products observed; physical limit well above,EIA_Chokepoints_2023
+bab_el_mandeb,Bab el-Mandeb,RS,GoA,chokepoint,9.0,60,0.3,~9 mb/d historically; dropped to ~4 in 2024 due to Houthi attacks,EIA_Chokepoints_2023
+suez,Suez Canal + SUMED pipeline,RS,MED,chokepoint,10.0,200,1.0,Suez ~5-6 mb/d + SUMED ~2.5 mb/d; post-2023 Red Sea disruption reduced usage,EIA_Chokepoints_2023
+bosphorus,Turkish Straits (Bosphorus + Dardanelles),BS,MED,chokepoint,3.0,160,0.5,~3 mb/d of Russian and Caspian crude,EIA_Chokepoints_2023
+danish_straits,Danish Straits,BAL,NS,chokepoint,3.0,250,0.8,Russian Baltic exports; collapsed post-2022 sanctions,EIA_Chokepoints_2023
+malacca,Strait of Malacca,IO,SCS,chokepoint,24.0,500,1.7,~16 mb/d crude+condensate; narrowest 1.7 nm at Phillips Channel,EIA_Chokepoints_2023
+panama,Panama Canal,CAR,EPAC,chokepoint,1.2,50,1.0,Tankers limited; 2023-2024 drought cut daily slots to 22-24,ACP_AnnualReport_2023
+goa_io,Gulf of Aden to Indian Ocean (open sea),GoA,IO,open,999,1200,4.0,No chokepoint; open Arabian Sea,computed
+med_natl,Gibraltar to North Atlantic,MED,NATL,open,999,100,0.3,Gibraltar strait is wide; not capacity-constrained for oil,EIA_Chokepoints_2023
+natl_satl,North Atlantic to South Atlantic,NATL,SATL,open,999,4500,15.0,Open ocean mid-Atlantic,computed
+satl_io,Cape of Good Hope,SATL,IO,open,999,4500,14.0,Long alternative to Suez; became heavily used in 2024,EIA_Chokepoints_2023
+scs_wpac,South China Sea to Western Pacific,SCS,WPAC,open,999,500,1.5,Taiwan / Luzon straits; no chokepoint for oil,computed
+wpac_epac,Trans-Pacific,WPAC,EPAC,open,999,4500,14.0,North Pacific crossing,computed
+car_natl,Caribbean to North Atlantic,CAR,NATL,open,999,1500,4.5,Open passage via Florida Straits,computed
+ns_natl,North Sea to North Atlantic,NS,NATL,open,999,500,1.5,,computed

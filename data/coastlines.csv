@@ -1,0 +1,58 @@
+iso3,basin_id,notes
+SAU,PG,Ras Tanura / Jubail
+SAU,RS,Yanbu / Jeddah
+IRN,PG,Kharg Island
+IRQ,PG,Basra
+KWT,PG,Al Ahmadi
+ARE,PG,Fujairah via PG
+QAT,PG,Ras Laffan
+OMN,PG,
+OMN,IO,Sohar / Duqm (outside Hormuz)
+YEM,GoA,
+EGY,RS,Ain Sukhna (SUMED south)
+EGY,MED,Sidi Kerir (SUMED north)
+LBY,MED,Es Sider
+DZA,MED,Skikda / Arzew
+TUR,MED,Ceyhan (BTC terminus)
+TUR,BS,Novorossiysk-facing
+RUS,BS,Novorossiysk
+RUS,BAL,Ust-Luga / Primorsk
+RUS,WPAC,Kozmino (ESPO terminus)
+KAZ,BS,via CPC pipeline to Novorossiysk
+NOR,NS,
+NOR,NATL,
+GBR,NS,
+GBR,NATL,
+NLD,NS,Rotterdam
+DEU,NS,Wilhelmshaven
+DEU,BAL,Rostock
+DNK,NS,
+DNK,BAL,
+POL,BAL,Gdansk
+FRA,MED,Fos / Lavera
+FRA,NATL,Le Havre
+ESP,MED,Cartagena
+ESP,NATL,Bilbao / La Coruna
+ITA,MED,Trieste / Augusta
+NGA,SATL,Bonny
+AGO,SATL,Soyo / Luanda
+BRA,SATL,Santos / Rio
+USA,NATL,East Coast
+USA,CAR,Gulf Coast (Houston / LOOP)
+USA,EPAC,West Coast (Long Beach / Anacortes)
+CAN,NATL,Saint John
+CAN,EPAC,Vancouver / Trans Mountain
+MEX,CAR,Dos Bocas / Cayo Arcas
+MEX,EPAC,Salina Cruz
+VEN,CAR,Jose
+COL,CAR,Covenas
+IND,IO,Sikka / Jamnagar
+THA,IO,Map Ta Phut (Andaman)
+THA,SCS,Gulf of Thailand ports
+IDN,IO,
+IDN,SCS,
+SGP,SCS,Jurong
+CHN,SCS,Southern ports
+CHN,WPAC,Ningbo / Qingdao / Dalian
+JPN,WPAC,
+KOR,WPAC,
