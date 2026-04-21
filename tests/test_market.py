@@ -1,33 +1,44 @@
-from straitgraph import Country, Strait, build_graph, solve_market, strait_importance
+from straitgraph import (
+    Basin,
+    Coastline,
+    Country,
+    Strait,
+    build_oil_graph,
+    solve_market,
+    strait_importance,
+)
 
 
 def _toy_graph():
+    # A (producer) ---[X]--cheap--[Y]--link--[Z]--- C (consumer)
+    #                     \_______detour_______/
     countries = [
-        Country("A", "A", supply=10),
-        Country("B", "B"),
-        Country("C", "C", demand=10),
+        Country("A", "A", production_mbd=10, consumption_mbd=0),
+        Country("C", "C", production_mbd=0, consumption_mbd=10),
     ]
+    basins = [Basin("X", "X"), Basin("Y", "Y"), Basin("Z", "Z")]
+    coastlines = [Coastline("A", "X"), Coastline("C", "Z")]
     straits = [
-        Strait("AB", ("A", "B"), capacity=20, distance_nm=100, transit_days=1.0),
-        Strait("BC", ("B", "C"), capacity=20, distance_nm=100, transit_days=1.0),
-        Strait("AC-long", ("A", "C"), capacity=20, distance_nm=500, transit_days=5.0),
+        Strait("cheap", "Cheap", "X", "Y", "chokepoint", 20, 100, 1.0),
+        Strait("link", "Link", "Y", "Z", "chokepoint", 20, 100, 1.0),
+        Strait("detour", "Detour", "X", "Z", "chokepoint", 20, 500, 5.0),
     ]
-    return build_graph(countries, straits)
+    return build_oil_graph(countries, basins, coastlines, straits)
 
 
 def test_market_solves():
     g = _toy_graph()
     sol = solve_market(g)
     assert sol.status == "optimal"
-    # cheapest path is A->B->C with cost 2.0 per unit, 10 units delivered
-    assert abs(sol.total_cost - 20.0) < 1e-4
+    # cheapest: A -> X (0.25) -> Y (1) -> Z (1) -> C (0.25) = 2.5 per unit, 10 units = 25
+    assert abs(sol.total_cost - 25.0) < 1e-3
 
 
-def test_strait_importance_removes_bottleneck():
+def test_strait_importance_finds_bottleneck():
     g = _toy_graph()
     imp = strait_importance(g)
-    # Removing AB or BC forces the long route (+3 per unit * 10 = +30)
-    assert imp["AB"] > 0
-    assert imp["BC"] > 0
-    # Removing the long backup route shouldn't change the optimum
-    assert abs(imp["AC-long"]) < 1e-4
+    # Removing 'cheap' forces detour: cost becomes 10*(0.25+5+0.25)=55, delta=30
+    assert abs(imp["cheap"] - 30.0) < 1e-3
+    assert abs(imp["link"] - 30.0) < 1e-3
+    # Detour is unused at optimum
+    assert abs(imp["detour"]) < 1e-3
