@@ -1,15 +1,15 @@
-basin_id,name
-PG,Persian Gulf
-RS,Red Sea
-GoA,Gulf of Aden
-IO,Indian Ocean
-SCS,South China Sea
-WPAC,Western Pacific
-EPAC,Eastern Pacific
-CAR,Caribbean and Gulf of Mexico
-NATL,North Atlantic
-SATL,South Atlantic
-MED,Mediterranean Sea
-BS,Black Sea
-BAL,Baltic Sea
-NS,North Sea
+basin_id,name,lat,lon
+PG,Persian Gulf,27,51
+RS,Red Sea,21,38
+GoA,Gulf of Aden,13,48
+IO,Indian Ocean,0,70
+SCS,South China Sea,12,113
+WPAC,Western Pacific,25,140
+EPAC,Eastern Pacific,20,-130
+CAR,Caribbean and Gulf of Mexico,15,-75
+NATL,North Atlantic,40,-40
+SATL,South Atlantic,-20,-15
+MED,Mediterranean Sea,37,15
+BS,Black Sea,43,35
+BAL,Baltic Sea,58,20
+NS,North Sea,56,3

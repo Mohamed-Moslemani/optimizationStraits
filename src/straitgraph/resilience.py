@@ -26,7 +26,10 @@ def strait_importance(
     for u, v, data in g.edges(data=True):
         if data.get("kind") != "strait":
             continue
-        if only_chokepoints and data.get("strait_kind") != "chokepoint":
+        if only_chokepoints and data.get("strait_kind") not in (
+            "chokepoint",
+            "pipeline",
+        ):
             continue
         strait_edges.setdefault(data["strait_id"], []).append((u, v))
 

@@ -75,7 +75,10 @@ function countryGeoJson(
     const cons =
       scenario.country_consumption_overrides[c.iso3] ?? c.consumption_mbd;
     const net = prod - cons;
-    const price = solution?.node_prices[c.iso3] ?? 0;
+    const delivered = solution?.delivered_prices_usd[c.iso3] ?? 0;
+    const delta = solution?.price_delta_vs_base_usd[c.iso3] ?? 0;
+    const unmet = solution?.unmet_demand_mbd[c.iso3] ?? 0;
+    const shutIn = solution?.shut_in_supply_mbd[c.iso3] ?? 0;
     return {
       type: "Feature" as const,
       properties: {
@@ -84,7 +87,10 @@ function countryGeoJson(
         production_mbd: prod,
         consumption_mbd: cons,
         net,
-        price,
+        delivered,
+        delta,
+        unmet,
+        shutIn,
       },
       geometry: { type: "Point" as const, coordinates: [c.lon, c.lat] },
     };
@@ -137,6 +143,8 @@ export default function WorldMap({
             "case",
             ["get", "closed"],
             "#dc2626",
+            ["==", ["get", "kind"], "pipeline"],
+            "#b45309",
             ["==", ["get", "kind"], "chokepoint"],
             [
               "interpolate",
@@ -180,6 +188,8 @@ export default function WorldMap({
             "case",
             ["get", "closed"],
             "#dc2626",
+            ["==", ["get", "kind"], "pipeline"],
+            "#b45309",
             ["==", ["get", "kind"], "chokepoint"],
             [
               "interpolate",
@@ -211,6 +221,8 @@ export default function WorldMap({
             "case",
             ["==", ["get", "kind"], "open"],
             ["literal", [4, 3]],
+            ["==", ["get", "kind"], "pipeline"],
+            ["literal", [1, 2]],
             ["literal", [1, 0]],
           ],
           "line-opacity": 0.95,
@@ -345,6 +357,24 @@ export default function WorldMap({
         if (!f) return;
         const p = f.properties!;
         const netClass = Number(p.net) > 0 ? "exporter" : "importer";
+        const delivered = Number(p.delivered);
+        const delta = Number(p.delta);
+        const deltaSign = delta > 0.01 ? "up" : delta < -0.01 ? "down" : "";
+        const unmet = Number(p.unmet);
+        const shutIn = Number(p.shutIn);
+        const gapBlock =
+          unmet > 0.01
+            ? `<div class="popup-row"><span>unmet demand</span><span class="up">${unmet.toFixed(2)} mb/d</span></div>`
+            : shutIn > 0.01
+              ? `<div class="popup-row"><span>shut-in supply</span><span class="up">${shutIn.toFixed(2)} mb/d</span></div>`
+              : "";
+        const priceBlock = delivered
+          ? `<div class="popup-row popup-price"><span>delivered</span><span>$${delivered.toFixed(2)}/bbl</span></div>` +
+            (Math.abs(delta) > 0.005
+              ? `<div class="popup-row"><span>vs base</span><span class="${deltaSign}">${delta >= 0 ? "+" : ""}$${delta.toFixed(2)}</span></div>`
+              : "") +
+            gapBlock
+          : "";
         popup
           .setLngLat(e.lngLat)
           .setHTML(
@@ -352,9 +382,7 @@ export default function WorldMap({
               `<div class="popup-row"><span>production</span><span>${Number(p.production_mbd).toFixed(2)} mb/d</span></div>` +
               `<div class="popup-row"><span>consumption</span><span>${Number(p.consumption_mbd).toFixed(2)} mb/d</span></div>` +
               `<div class="popup-row"><span>net</span><span class="${netClass}">${Number(p.net).toFixed(2)} mb/d</span></div>` +
-              (p.price
-                ? `<div class="popup-note">price ${Number(p.price).toFixed(2)}</div>`
-                : ""),
+              priceBlock,
           )
           .addTo(map);
       });
@@ -422,6 +450,10 @@ function MapLegend() {
       <div className="mt-1 flex items-center gap-2">
         <span className="inline-block h-0.5 w-6 border-t border-dashed border-slate-400" />
         open ocean (uncapped)
+      </div>
+      <div className="mt-1 flex items-center gap-2">
+        <span className="inline-block h-0.5 w-6 border-t-2 border-dotted border-amber-700" />
+        pipeline
       </div>
     </div>
   );

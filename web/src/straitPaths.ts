@@ -167,4 +167,39 @@ export const STRAIT_PATHS: Record<string, [number, number][]> = {
     [-28, 48],
     [-40, 40],
   ],
+  // Lombok / Sunda — Malacca alternative through the Indonesian archipelago
+  lombok_sunda: [
+    [70, 0],
+    [85, -3],
+    [100, -7],
+    [110, -8],
+    [115.7, -8.7],
+    [118, -7],
+    [122, -2],
+    [122, 4],
+    [118, 10],
+    [113, 12],
+  ],
+  // Saudi East-West Pipeline (Petroline) — Hormuz bypass via Yanbu
+  east_west_pipeline: [
+    [51, 27],
+    [49, 26.5],
+    [44, 25],
+    [40, 24.5],
+    [38, 24],
+    [38, 21],
+  ],
+  // Baku-Tbilisi-Ceyhan pipeline — Bosphorus bypass via Turkish Mediterranean
+  btc_pipeline: [
+    [35, 43],
+    [40, 42],
+    [44, 40.5],
+    [42, 39],
+    [40, 38],
+    [37, 37],
+    [35.8, 36.7],
+    [33, 36],
+    [25, 34],
+    [15, 37],
+  ],
 };

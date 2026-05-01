@@ -7,9 +7,7 @@ interface Props {
 
 export default function ResultsPanel({ world, solution }: Props) {
   if (!solution) {
-    return (
-      <div className="p-5 text-sm text-slate-400">Waiting for solve…</div>
-    );
+    return <div className="p-5 text-sm text-slate-400">Waiting for solve…</div>;
   }
 
   const countryMap = Object.fromEntries(
@@ -22,15 +20,27 @@ export default function ResultsPanel({ world, solution }: Props) {
   const statusIsOk =
     solution.status === "optimal" || solution.status === "optimal_inaccurate";
 
-  const strictCountryPrices = Object.entries(solution.node_prices).filter(
-    ([k]) => countryMap[k],
+  // Importers = countries where consumption > production
+  const importers = world.countries.filter(
+    (c) => c.consumption_mbd > c.production_mbd,
   );
-  const topSources = [...strictCountryPrices]
-    .sort((a, b) => a[1] - b[1])
-    .slice(0, 5);
-  const topSinks = [...strictCountryPrices]
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5);
+
+  const byDeltaDesc = [...importers]
+    .map((c) => ({
+      c,
+      delta: solution.price_delta_vs_base_usd[c.iso3] ?? 0,
+      price: solution.delivered_prices_usd[c.iso3] ?? 0,
+    }))
+    .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))
+    .slice(0, 8);
+
+  const keyImporters = ["CHN", "IND", "JPN", "KOR", "DEU", "NLD", "ITA", "USA"]
+    .map((iso3) => ({
+      c: countryMap[iso3],
+      price: solution.delivered_prices_usd[iso3] ?? 0,
+      delta: solution.price_delta_vs_base_usd[iso3] ?? 0,
+    }))
+    .filter((x) => x.c);
 
   const straitImportanceSorted = Object.entries(
     solution.strait_importance,
@@ -43,7 +53,10 @@ export default function ResultsPanel({ world, solution }: Props) {
   const topFlows = [...solution.flows]
     .filter((f) => f.kind === "strait")
     .sort((a, b) => b.mbd - a.mbd)
-    .slice(0, 8);
+    .slice(0, 6);
+
+  const hasGap =
+    solution.total_unmet_mbd > 0.01 || solution.total_shut_in_mbd > 0.01;
 
   return (
     <div className="flex h-full flex-col overflow-y-auto p-5">
@@ -51,24 +64,43 @@ export default function ResultsPanel({ world, solution }: Props) {
         <div className="mb-3 rounded-md border border-red-200 bg-red-50 p-2.5 text-xs text-red-800">
           <div className="font-semibold">LP status: {solution.status}</div>
           <div className="mt-0.5 text-red-700">
-            No feasible shipping plan — at least one demand cannot be met given
-            current capacities.
+            No feasible shipping plan even with slack — likely a numerical issue.
           </div>
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-2">
+      <BigPrice
+        price={solution.global_avg_price_usd}
+        delta={solution.global_avg_price_delta_usd}
+      />
+
+      {hasGap && (
+        <SupplyGap solution={solution} countryMap={countryMap} />
+      )}
+
+      <div className="mt-3 grid grid-cols-2 gap-2">
         <Stat
-          label="Total cost"
-          value={solution.total_cost.toFixed(1)}
+          label="Total freight"
+          value={solution.total_cost.toFixed(0)}
           sub="barrel-days"
         />
         <Stat
-          label="Supply = demand"
-          value={`${solution.total_supply.toFixed(1)}`}
-          sub="mb/d"
+          label="Volume"
+          value={`${(solution.total_supply - solution.total_shut_in_mbd).toFixed(1)}`}
+          sub="mb/d delivered"
         />
       </div>
+
+      <Section title="Biggest price movers">
+        <div className="mb-1 text-[10px] text-slate-500">
+          Importers sorted by |Δ price vs base case|
+        </div>
+        <PriceTable rows={byDeltaDesc} />
+      </Section>
+
+      <Section title="Key importer delivered prices">
+        <PriceTable rows={keyImporters} />
+      </Section>
 
       <Section title="Top strait flows">
         <DataTable>
@@ -86,7 +118,7 @@ export default function ResultsPanel({ world, solution }: Props) {
 
       <Section title="Strait importance">
         <div className="mb-1 text-[10px] text-slate-500">
-          Δ shipping cost if the strait closes
+          Δ freight cost if closed
         </div>
         <DataTable>
           {straitImportanceSorted.map(([sid, v]) => {
@@ -106,38 +138,134 @@ export default function ResultsPanel({ world, solution }: Props) {
           })}
         </DataTable>
       </Section>
-
-      <Section title="Cheapest sources">
-        <div className="mb-1 text-[10px] text-slate-500">
-          Node price (ship-days per mb/d of net supply)
-        </div>
-        <DataTable>
-          {topSources.map(([iso3, p]) => (
-            <Row key={iso3}>
-              <span className="truncate">
-                {countryMap[iso3]?.name ?? iso3}
-              </span>
-              <span className="font-mono text-teal-700">{p.toFixed(2)}</span>
-            </Row>
-          ))}
-        </DataTable>
-      </Section>
-
-      <Section title="Most expensive sinks">
-        <DataTable>
-          {topSinks.map(([iso3, p]) => (
-            <Row key={iso3}>
-              <span className="truncate">
-                {countryMap[iso3]?.name ?? iso3}
-              </span>
-              <span className="font-mono text-orange-700">
-                {p.toFixed(2)}
-              </span>
-            </Row>
-          ))}
-        </DataTable>
-      </Section>
     </div>
+  );
+}
+
+function SupplyGap({
+  solution,
+  countryMap,
+}: {
+  solution: Solution;
+  countryMap: Record<string, { name: string }>;
+}) {
+  const unmet = Object.entries(solution.unmet_demand_mbd)
+    .filter(([, v]) => v > 0.01)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
+  const shutIn = Object.entries(solution.shut_in_supply_mbd)
+    .filter(([, v]) => v > 0.01)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
+
+  return (
+    <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
+      <div className="text-[10px] font-semibold uppercase tracking-wider text-amber-800">
+        Supply gap
+      </div>
+      <div className="mt-1 grid grid-cols-2 gap-3">
+        <div>
+          <div className="font-mono text-lg font-semibold text-amber-900">
+            {solution.total_unmet_mbd.toFixed(1)}
+            <span className="ml-1 text-[10px] font-normal text-amber-700">
+              mb/d
+            </span>
+          </div>
+          <div className="text-[10px] text-amber-700">unmet demand</div>
+          <ul className="mt-1 text-[11px] text-amber-900">
+            {unmet.map(([iso3, v]) => (
+              <li key={iso3} className="flex justify-between">
+                <span className="truncate">
+                  {countryMap[iso3]?.name ?? iso3}
+                </span>
+                <span className="font-mono">{v.toFixed(2)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div>
+          <div className="font-mono text-lg font-semibold text-amber-900">
+            {solution.total_shut_in_mbd.toFixed(1)}
+            <span className="ml-1 text-[10px] font-normal text-amber-700">
+              mb/d
+            </span>
+          </div>
+          <div className="text-[10px] text-amber-700">shut-in supply</div>
+          <ul className="mt-1 text-[11px] text-amber-900">
+            {shutIn.map(([iso3, v]) => (
+              <li key={iso3} className="flex justify-between">
+                <span className="truncate">
+                  {countryMap[iso3]?.name ?? iso3}
+                </span>
+                <span className="font-mono">{v.toFixed(2)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BigPrice({ price, delta }: { price: number; delta: number }) {
+  const up = delta > 0.01;
+  const down = delta < -0.01;
+  const color = up ? "text-red-600" : down ? "text-teal-700" : "text-slate-500";
+  const arrow = up ? "▲" : down ? "▼" : "•";
+  return (
+    <div className="rounded-lg border border-sky-200 bg-gradient-to-br from-sky-50 to-white p-3">
+      <div className="text-[10px] font-semibold uppercase tracking-wider text-sky-700">
+        Global avg delivered price
+      </div>
+      <div className="mt-1 flex items-end justify-between gap-2">
+        <div className="font-mono text-3xl font-semibold tabular-nums text-slate-900">
+          ${price.toFixed(2)}
+        </div>
+        <div className={`font-mono text-sm ${color}`}>
+          {arrow} {delta >= 0 ? "+" : ""}
+          ${delta.toFixed(2)}
+        </div>
+      </div>
+      <div className="text-[10px] text-slate-500">
+        USD/bbl, demand-weighted · vs. base case
+      </div>
+    </div>
+  );
+}
+
+interface PriceRow {
+  c: { iso3: string; name: string };
+  price: number;
+  delta: number;
+}
+
+function PriceTable({ rows }: { rows: PriceRow[] }) {
+  return (
+    <DataTable>
+      {rows.map((r) => {
+        const up = r.delta > 0.01;
+        const down = r.delta < -0.01;
+        const color = up
+          ? "text-red-600"
+          : down
+            ? "text-teal-700"
+            : "text-slate-500";
+        return (
+          <Row key={r.c.iso3}>
+            <span className="truncate">{r.c.name}</span>
+            <span className="flex items-baseline gap-2">
+              <span className="font-mono text-slate-800">
+                ${r.price.toFixed(2)}
+              </span>
+              <span className={`font-mono text-[10px] ${color}`}>
+                {r.delta >= 0 ? "+" : ""}
+                {r.delta.toFixed(2)}
+              </span>
+            </span>
+          </Row>
+        );
+      })}
+    </DataTable>
   );
 }
 
@@ -155,7 +283,7 @@ function Stat({
       <div className="text-[9px] font-semibold uppercase tracking-wider text-slate-500">
         {label}
       </div>
-      <div className="mt-0.5 font-mono text-xl font-semibold tabular-nums text-slate-900">
+      <div className="mt-0.5 font-mono text-lg font-semibold tabular-nums text-slate-900">
         {value}
       </div>
       {sub && <div className="text-[10px] text-slate-400">{sub}</div>}

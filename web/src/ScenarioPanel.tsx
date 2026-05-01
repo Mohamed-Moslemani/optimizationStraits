@@ -1,5 +1,9 @@
 import type { Country, Scenario, Strait, World } from "./types";
-import { EMPTY_SCENARIO } from "./types";
+import {
+  DEFAULT_REFERENCE_PRICE,
+  DEFAULT_SHIP_DAY_COST,
+  EMPTY_SCENARIO,
+} from "./types";
 import { PRESETS } from "./scenarios";
 
 interface Props {
@@ -39,7 +43,13 @@ export default function ScenarioPanel({
         {PRESETS.map((p) => (
           <button
             key={p.id}
-            onClick={() => setScenario(p.build())}
+            onClick={() =>
+              setScenario({
+                ...p.build(),
+                reference_price_usd_per_bbl: scenario.reference_price_usd_per_bbl,
+                ship_day_cost_usd_per_bbl: scenario.ship_day_cost_usd_per_bbl,
+              })
+            }
             className="rounded-md border border-slate-200 bg-white px-3 py-2 text-left text-sm text-slate-700 transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-900"
             title={p.description}
           >
@@ -47,6 +57,8 @@ export default function ScenarioPanel({
           </button>
         ))}
       </div>
+
+      <PriceAnchors scenario={scenario} setScenario={setScenario} />
 
       {selectedStrait && (
         <StraitEditor
@@ -72,6 +84,85 @@ export default function ScenarioPanel({
         setScenario={setScenario}
       />
     </div>
+  );
+}
+
+function PriceAnchors({
+  scenario,
+  setScenario,
+}: {
+  scenario: Scenario;
+  setScenario: (s: Scenario) => void;
+}) {
+  const refPrice = scenario.reference_price_usd_per_bbl;
+  const shipCost = scenario.ship_day_cost_usd_per_bbl;
+  return (
+    <section className="mt-6">
+      <SectionHeader title="Pricing anchors">
+        {(refPrice !== DEFAULT_REFERENCE_PRICE ||
+          shipCost !== DEFAULT_SHIP_DAY_COST) && (
+          <button
+            onClick={() =>
+              setScenario({
+                ...scenario,
+                reference_price_usd_per_bbl: DEFAULT_REFERENCE_PRICE,
+                ship_day_cost_usd_per_bbl: DEFAULT_SHIP_DAY_COST,
+              })
+            }
+            className="text-xs text-slate-500 hover:text-sky-600"
+          >
+            defaults
+          </button>
+        )}
+      </SectionHeader>
+      <div className="mt-3 rounded-lg border border-slate-200 bg-white p-3">
+        <label className="block text-xs text-slate-600">
+          Reference (Brent):{" "}
+          <span className="font-mono text-slate-900">
+            ${refPrice.toFixed(0)}/bbl
+          </span>
+        </label>
+        <input
+          type="range"
+          min={40}
+          max={140}
+          step={1}
+          value={refPrice}
+          onChange={(e) =>
+            setScenario({
+              ...scenario,
+              reference_price_usd_per_bbl: parseFloat(e.target.value),
+            })
+          }
+          className="mt-1 w-full"
+        />
+        <label className="mt-3 block text-xs text-slate-600">
+          Freight cost:{" "}
+          <span className="font-mono text-slate-900">
+            ${shipCost.toFixed(2)}/bbl per ship-day
+          </span>
+        </label>
+        <input
+          type="range"
+          min={0.25}
+          max={4}
+          step={0.05}
+          value={shipCost}
+          onChange={(e) =>
+            setScenario({
+              ...scenario,
+              ship_day_cost_usd_per_bbl: parseFloat(e.target.value),
+            })
+          }
+          className="mt-1 w-full"
+        />
+        <p className="mt-2 text-[10px] leading-snug text-slate-500">
+          Sets how many USD/bbl a single ship-day adds. 2023 VLCC rates averaged
+          ~$1/day; during the 2024 Red Sea disruption they briefly reached
+          ~$3/day. Raise to see a sharper shock response.
+        </p>
+      </div>
+    </section>
   );
 }
 

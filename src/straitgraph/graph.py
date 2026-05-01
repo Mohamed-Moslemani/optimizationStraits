@@ -124,19 +124,42 @@ def build_oil_graph(
 
     for s in straits:
         a, b = _bkey(s.basin_a), _bkey(s.basin_b)
-        attrs = dict(
+        # Route each strait through its own midpoint node. This lets two
+        # parallel straits between the same basin pair (e.g., Malacca and
+        # Lombok/Sunda between IO and SCS) coexist without colliding under the
+        # DiGraph "one edge per (u,v)" rule. Each half-edge carries the same
+        # strait_id, half the cost, and the strait's capacity (so the strait
+        # capacity binds whichever direction flow goes).
+        mid = _skey(s.strait_id)
+        g.add_node(
+            mid,
+            kind="strait_node",
+            strait_id=s.strait_id,
+            name=s.name,
+            supply=0.0,
+            demand=0.0,
+            lat=0.0,
+            lon=0.0,
+        )
+        half = dict(
             kind="strait",
             strait_id=s.strait_id,
             name=s.name,
             strait_kind=s.kind,
             capacity=s.capacity_mbd,
-            transit_days=s.transit_days,
-            distance_nm=s.distance_nm,
+            transit_days=s.transit_days / 2.0,
+            distance_nm=s.distance_nm / 2.0,
         )
-        g.add_edge(a, b, **attrs)
-        g.add_edge(b, a, **attrs)
+        g.add_edge(a, mid, **half)
+        g.add_edge(mid, a, **half)
+        g.add_edge(b, mid, **half)
+        g.add_edge(mid, b, **half)
 
     return g
+
+
+def _skey(strait_id: str) -> str:
+    return f"s:{strait_id}"
 
 
 def _bkey(basin_id: str) -> str:

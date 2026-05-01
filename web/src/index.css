@@ -69,6 +69,18 @@ body {
 .popup-row .importer {
   color: #ea580c;
 }
+.popup-row.popup-price {
+  border-top: 1px solid #dbeaf2;
+  margin-top: 4px;
+  padding-top: 4px;
+  font-weight: 600;
+}
+.popup-row .up {
+  color: #dc2626;
+}
+.popup-row .down {
+  color: #0d9488;
+}
 .popup-note {
   margin-top: 4px;
   font-size: 10px;

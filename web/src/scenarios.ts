@@ -13,16 +13,16 @@ export const PRESETS: Preset[] = [
     id: "base",
     label: "Base case",
     description: "Unperturbed 2023 oil market.",
-    build: () => ({ ...EMPTY_SCENARIO }),
+    build: () => ({ ...EMPTY_SCENARIO }),  // keep current pricing anchors
   },
   {
     id: "red_sea_crisis",
     label: "Red Sea crisis (2024)",
     description:
-      "Bab el-Mandeb and Suez reduced to 30% capacity as tankers reroute around the Cape.",
+      "Bab el-Mandeb and Suez effectively closed — tankers reroute around the Cape of Good Hope.",
     build: () => ({
       ...EMPTY_SCENARIO,
-      strait_capacity_overrides: { bab_el_mandeb: 2.7, suez: 3.0 },
+      strait_capacity_overrides: { bab_el_mandeb: 0.5, suez: 0.5 },
     }),
   },
   {

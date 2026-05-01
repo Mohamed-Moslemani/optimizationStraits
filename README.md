@@ -39,14 +39,14 @@ cd web && npm install
 Two terminals:
 
 ```bash
-# terminal 1 — backend on http://localhost:8005
-.venv/bin/uvicorn api.main:app --reload --port 8005
+# terminal 1 — backend on http://localhost:7009
+.venv/bin/uvicorn api.main:app --reload --port 7009
 
-# terminal 2 — frontend on http://localhost:5173
+# terminal 2 — frontend on http://localhost:7010
 cd web && npm run dev
 ```
 
-Open http://localhost:5173. The map lets you:
+Open http://localhost:7010. The map lets you:
 - **Click a strait** → slider to change capacity or close it entirely
 - **Click a country** → sliders to change production and consumption
 - **Preset scenarios** → "Red Sea crisis 2024", "Close Hormuz", "Russia sanctions", etc.
