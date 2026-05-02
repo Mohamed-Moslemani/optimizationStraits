@@ -1,7 +1,8 @@
-# OpenCrude — model-vs-reality calibration report (v0.2.0)
+# OpenCrude — model-vs-reality calibration report (v0.3, with risk-premium update)
 
-**Run date:** 2026-05-02 · **Model version:** OpenCrude 0.2.0 · **Data:**
-EIA Brent monthly + Kilian IGREA + UN Comtrade HS 2709 2023 (137 pairs)
+**Run date:** 2026-05-02 · **Model version:** OpenCrude 0.3.0 · **Data:**
+EIA Brent monthly + Kilian IGREA + UN Comtrade HS 2709 2023 (137 pairs) +
+new per-strait risk-premium field
 
 This report runs the OpenCrude model against three documented oil-market
 shocks of the last five years and grades how well it matches published
@@ -325,24 +326,63 @@ disruptions.
 
 ---
 
-## Action items, ranked by impact
+## Update: progress on three improvements (post-v0.2.0)
 
-1. **Tighten bilateral routing anchor** for historical-calibration runs
-   (`bilateral_anchor_weight = 2.0` or higher). This alone would make Red
-   Sea scenarios bind, since base Suez would carry the observed 9 mb/d
-   instead of the LP's preferred 4 mb/d. **2 hours.**
-2. **Add 3-grade crude differentiation** (light/medium/heavy). Captures
-   Urals/Dubai/Brent spreads that drove the Russia 2022 story. **1 day.**
-3. **Per-strait insurance / risk-premium toggle** on top of base freight.
-   Captures the Red Sea 2024 freight component that was insurance, not
-   transit. **3 hours.**
-4. **Add 2019 Abqaiq strike** to calibration episodes. A clean
-   single-source supply shock with well-documented price response.
-   **2 hours.**
+### #1 Tighten bilateral anchor (attempted, no measurable improvement)
+Swept `bilateral_anchor_weight` from 0.5 to 10.0 on the Red Sea episode.
+Brent unchanged at every weight. **Root cause:** the UN Comtrade data we
+have (137 pairs) only attributes ~2.45 mb/d to Suez, not the ~9 mb/d
+real value. The anchor is correctly enforced; the *anchor itself* is
+undersized. The fix is more bilateral data (more reporters, finer HS
+codes), not the anchor weight. Documented and parked.
 
-After items 1+2+3, recommend re-running this report. Expected outcome:
-calibration verdict shifts from "0 of 9 in range" to "5+ of 9 within
-±30%" without any change to the underlying model logic.
+### #2 Per-strait risk premium (shipped — useful but limited)
+Added a `risk_premium_usd_per_bbl` field per strait. The LP adds it to
+each barrel that traverses the strait, on top of `transit_days × ship_day_cost`.
+
+Calibrated the Red Sea 2024 episode with `bab_el_mandeb=$3, suez=$2`
+(Lloyd's market reports show $2-4/bbl insurance surcharge during Q1 2024).
+
+Result on Red Sea avg freight premium:
+- Pre-fix: $0.00/bbl modeled vs $2-4 observed
+- Post-fix: **$0.16/bbl** modeled — direction correct, magnitude still small
+
+The premium correctly redirects routing (Suez flow drops 3.49 → 2.90 mb/d
+when premium added) but the impact on global avg price is **structurally
+limited** by an architectural choice in our pricing model.
+
+### #3 Architectural finding — consumer pricing limits what freight can do
+
+Our consumer prices are anchored at **willingness-to-pay at baseline
+demand** (`p_j = a_j - b_j d_j` evaluated at `d_j = d_max`). When freight
+rises, the LP eats the cost (lower supplier gate prices) but consumer
+prices stay at WTP. This means **no freight shock can move global Brent**
+in the current model — only a binding capacity that forces demand cuts can.
+
+**The fix is a pricing-model rewrite** so freight passes through to
+consumer prices. Done by anchoring at supplier gate and propagating
+downstream with shipping added (the current back-prop loop already does
+this for supplier prices — just needs to be redirected). ~1 day. **This
+is the highest-impact next step.**
+
+### #4 Crude grade differentiation — deferred to v0.4
+See [`DESIGN_grades.md`](DESIGN_grades.md). 3-grade multi-commodity LP.
+~5 days total. Without it the Russia 2022 Urals-discount story cannot
+be reproduced.
+
+## Recommended next path
+
+1. **Pricing-model rewrite** — freight pass-through to consumer prices.
+   ~1 day. Will lift Red Sea / Russia 2022 freight metrics measurably and
+   make the risk-premium feature genuinely useful at the Brent level.
+2. **Then** add grades per `DESIGN_grades.md`. ~5 days. Captures
+   Russia 2022 grade-spread story.
+3. **Then** add 2019 Abqaiq episode for further validation. ~2 hours.
+
+Expected outcome after step 1: ~3/9 metrics in ±30% range.
+Expected outcome after step 2: ~6/9 metrics in ±30% range.
+The residual ~3/9 will be the inventory-dynamics + expectations component
+that no structural model can capture; this is the unavoidable ceiling.
 
 ---
 
