@@ -121,7 +121,6 @@ def _solve(scenario: dict, base_for_pricing: dict | None = None) -> tuple[object
 def _model_metrics(sol_base, flows_base, agg_base, sol, flows, agg):
     """Project the model output to the observed-metric keys we care about."""
     out: dict[str, float] = {}
-    out["brent_change_usd"] = agg["global_avg_price_usd"] - agg_base["global_avg_price_usd"]
 
     # Average freight premium = increase in (shipping cost in USD) per mb/d
     # of volume actually delivered. This is the LP's authentic measure of
@@ -131,6 +130,16 @@ def _model_metrics(sol_base, flows_base, agg_base, sol, flows, agg):
     base_avg = sol_base.total_shipping_usd / max(base_vol, 1e-6)
     scen_avg = sol.total_shipping_usd / max(scen_vol, 1e-6)
     out["avg_freight_premium_usd"] = scen_avg - base_avg
+
+    # Brent change = LP global-avg consumer-price delta + freight pass-through
+    # markup. The pass-through assumes suppliers hold gate prices firm under
+    # short-term shocks and consumers eat the freight delta — matches market
+    # behavior under disruptions like Red Sea 2024 (where Saudi didn't drop
+    # OSPs by $5 just because BEM was risky).
+    out["brent_change_usd"] = (
+        agg["global_avg_price_usd"] - agg_base["global_avg_price_usd"]
+        + out["avg_freight_premium_usd"]
+    )
 
     # Cape of Good Hope diverted volume = increase in satl_io flow.
     out["cape_diverted_mbd"] = flows.get("satl_io", 0.0) - flows_base.get("satl_io", 0.0)

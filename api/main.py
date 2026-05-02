@@ -344,8 +344,6 @@ def solve(scenario: Scenario) -> SolutionDTO:
             if sid and g.nodes[u].get("kind") == "basin":
                 strait_flows[sid] = strait_flows.get(sid, 0.0) + f
 
-    delivered = {k: v for k, v in sol.node_prices.items() if k in country_map}
-
     # Baseline (unperturbed) solve for delta-vs-base, with the same pricing knobs.
     base_scenario = Scenario(
         reference_price_usd_per_bbl=scenario.reference_price_usd_per_bbl,
@@ -354,6 +352,31 @@ def solve(scenario: Scenario) -> SolutionDTO:
     )
     _, base_countries, base_sol, _ = _solve_one(base_scenario, with_importance=False)
     base_country_map = {c.iso3: c for c in base_countries}
+
+    # FREIGHT-PASS-THROUGH PRICING.
+    # The LP's consumer prices are anchored at WTP at d=d_max, which means
+    # freight shocks get absorbed by suppliers (lower gate prices) and never
+    # reach consumers under typical (cheap-shipping) conditions. Real markets
+    # don't behave this way — under disruption, suppliers hold gate prices
+    # firm and consumers eat the freight delta.
+    #
+    # We model this by computing the *change in average freight cost per
+    # delivered barrel* (scenario vs. base) and adding it as a uniform
+    # mark-up to consumer prices on top of their WTP. Suppliers are reported
+    # at unchanged base gate prices (no longer "cushioning" the shock).
+    base_vol = sum(base_sol.realized_demand.values()) or 1.0
+    scen_vol = sum(sol.realized_demand.values()) or 1.0
+    base_freight_per_bbl = base_sol.total_shipping_usd / base_vol
+    scen_freight_per_bbl = sol.total_shipping_usd / scen_vol
+    freight_pass_through = scen_freight_per_bbl - base_freight_per_bbl
+
+    delivered = {}
+    for k, v in sol.node_prices.items():
+        if k not in country_map:
+            continue
+        c = country_map[k]
+        is_consumer = c.consumption_mbd > c.production_mbd
+        delivered[k] = v + freight_pass_through if is_consumer else v
     base_delivered = {
         k: v for k, v in base_sol.node_prices.items() if k in base_country_map
     }
