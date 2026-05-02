@@ -33,12 +33,18 @@ Capacities are **nominal upper bounds** derived from observed traffic plus physi
 Computed from representative port-to-port sea distances at a VLCC speed of ~14 knots laden. For v2, replace with the `searoute-py` package for reproducible great-circle-plus-chokepoint routing.
 
 ### Bilateral trade flows
-`bilateral_flows_2023.csv` contains the top ~80 exporter→importer pairs, used as a soft anchor in the LP (penalty on edge flows that deviate from observed-routing-derived expectations). Sources are approximate annualized values from:
-- **EIA International Energy Statistics** — https://www.eia.gov/international/data/world (US imports/exports, headline source-destination pairs)
-- **CREA Russian fossil-fuel tracker** — https://energyandcleanair.org (Russian post-2022 reroutings)
-- **Eurostat Comext** (HS 2709) — https://ec.europa.eu/eurostat (EU imports by partner)
+`bilateral_flows_2023.csv` contains ~137 exporter→importer pairs derived from **UN Comtrade HS 2709** (crude petroleum oils) imports for 2023. Used as a soft anchor in the LP (penalty on edge flows that deviate from observed-routing-derived expectations).
 
-The numbers are rounded to 0.1 mb/d and don't capture month-to-month variation. For a publication-quality dataset, replace with a UN Comtrade HS 2709 bulk download for the target year.
+**How to refresh.** Run `python scripts/fetch_comtrade.py 2023` from the repo root. The script:
+- Hits Comtrade's free public preview endpoint (no auth required, capped at 500 rows per call)
+- Iterates over the 38 reporters in our model, fetches their HS 2709 imports
+- Filters to the unique annual aggregate row (`motCode=0`, `partner2Code=0`)
+- Converts CIF USD value ÷ Brent annual avg ($82.49/bbl in 2023) → barrels/year → mb/d
+- Writes the new CSV in place
+
+Coverage: ~28 mb/d total (vs real seaborne crude ~40 mb/d). Gaps are countries that didn't report or hit API rate limits during the run; re-running may capture more. Top pairs match reality within 10-20% (RUS→CHN 2.02, SAU→CHN 1.79, IRQ→CHN 1.17, MEX→USA 0.68, etc.).
+
+**Caveats.** Using CIF/Brent for volume averages over grade differentials (Urals, Dubai, WTI all priced differently). For grade-specific accuracy, use the raw `qty` field — but be aware reporters use mixed units (kg vs kt) for the same `qtyUnitCode=8` field. The fetcher chooses USD-derived volume for cross-country consistency.
 
 ## Caveats (read before citing anything)
 
