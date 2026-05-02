@@ -60,10 +60,13 @@ export interface Solution {
   price_delta_vs_base_usd: Record<string, number>;
   global_avg_price_usd: number;
   global_avg_price_delta_usd: number;
-  unmet_demand_mbd: Record<string, number>;
-  total_unmet_mbd: number;
+  realized_demand_mbd: Record<string, number>;
+  demand_cut_mbd: Record<string, number>;
+  total_demand_response_mbd: number;
   shut_in_supply_mbd: Record<string, number>;
   total_shut_in_mbd: number;
+  total_shipping_usd: number;
+  total_baseline_demand: number;
 }
 
 export interface Scenario {
@@ -73,10 +76,12 @@ export interface Scenario {
   country_consumption_overrides: Record<string, number>;
   reference_price_usd_per_bbl: number;
   ship_day_cost_usd_per_bbl: number;
+  demand_elasticity: number;
 }
 
 export const DEFAULT_REFERENCE_PRICE = 85;
 export const DEFAULT_SHIP_DAY_COST = 1;
+export const DEFAULT_ELASTICITY = 0.2;
 
 export const EMPTY_SCENARIO: Scenario = {
   strait_capacity_overrides: {},
@@ -85,4 +90,5 @@ export const EMPTY_SCENARIO: Scenario = {
   country_consumption_overrides: {},
   reference_price_usd_per_bbl: DEFAULT_REFERENCE_PRICE,
   ship_day_cost_usd_per_bbl: DEFAULT_SHIP_DAY_COST,
+  demand_elasticity: DEFAULT_ELASTICITY,
 };

@@ -1,5 +1,6 @@
 import type { Country, Scenario, Strait, World } from "./types";
 import {
+  DEFAULT_ELASTICITY,
   DEFAULT_REFERENCE_PRICE,
   DEFAULT_SHIP_DAY_COST,
   EMPTY_SCENARIO,
@@ -48,6 +49,7 @@ export default function ScenarioPanel({
                 ...p.build(),
                 reference_price_usd_per_bbl: scenario.reference_price_usd_per_bbl,
                 ship_day_cost_usd_per_bbl: scenario.ship_day_cost_usd_per_bbl,
+                demand_elasticity: scenario.demand_elasticity,
               })
             }
             className="rounded-md border border-slate-200 bg-white px-3 py-2 text-left text-sm text-slate-700 transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-900"
@@ -96,17 +98,22 @@ function PriceAnchors({
 }) {
   const refPrice = scenario.reference_price_usd_per_bbl;
   const shipCost = scenario.ship_day_cost_usd_per_bbl;
+  const elast = scenario.demand_elasticity;
+  const isCustom =
+    refPrice !== DEFAULT_REFERENCE_PRICE ||
+    shipCost !== DEFAULT_SHIP_DAY_COST ||
+    elast !== DEFAULT_ELASTICITY;
   return (
     <section className="mt-6">
-      <SectionHeader title="Pricing anchors">
-        {(refPrice !== DEFAULT_REFERENCE_PRICE ||
-          shipCost !== DEFAULT_SHIP_DAY_COST) && (
+      <SectionHeader title="Market parameters">
+        {isCustom && (
           <button
             onClick={() =>
               setScenario({
                 ...scenario,
                 reference_price_usd_per_bbl: DEFAULT_REFERENCE_PRICE,
                 ship_day_cost_usd_per_bbl: DEFAULT_SHIP_DAY_COST,
+                demand_elasticity: DEFAULT_ELASTICITY,
               })
             }
             className="text-xs text-slate-500 hover:text-sky-600"
@@ -117,7 +124,7 @@ function PriceAnchors({
       </SectionHeader>
       <div className="mt-3 rounded-lg border border-slate-200 bg-white p-3">
         <label className="block text-xs text-slate-600">
-          Reference (Brent):{" "}
+          Reference Brent:{" "}
           <span className="font-mono text-slate-900">
             ${refPrice.toFixed(0)}/bbl
           </span>
@@ -137,7 +144,7 @@ function PriceAnchors({
           className="mt-1 w-full"
         />
         <label className="mt-3 block text-xs text-slate-600">
-          Freight cost:{" "}
+          Freight:{" "}
           <span className="font-mono text-slate-900">
             ${shipCost.toFixed(2)}/bbl per ship-day
           </span>
@@ -156,10 +163,28 @@ function PriceAnchors({
           }
           className="mt-1 w-full"
         />
+        <label className="mt-3 block text-xs text-slate-600">
+          Demand elasticity:{" "}
+          <span className="font-mono text-slate-900">{elast.toFixed(2)}</span>
+        </label>
+        <input
+          type="range"
+          min={0.05}
+          max={1.0}
+          step={0.05}
+          value={elast}
+          onChange={(e) =>
+            setScenario({
+              ...scenario,
+              demand_elasticity: parseFloat(e.target.value),
+            })
+          }
+          className="mt-1 w-full"
+        />
         <p className="mt-2 text-[10px] leading-snug text-slate-500">
-          Sets how many USD/bbl a single ship-day adds. 2023 VLCC rates averaged
-          ~$1/day; during the 2024 Red Sea disruption they briefly reached
-          ~$3/day. Raise to see a sharper shock response.
+          Short-run oil ε ≈ 0.05 (rigid), 1y ε ≈ 0.2-0.3, multi-year ε ≈ 0.5+.
+          Lower elasticity → bigger price spikes for the same shock; higher →
+          demand response cushions prices.
         </p>
       </div>
     </section>
