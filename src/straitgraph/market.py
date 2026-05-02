@@ -40,6 +40,8 @@ def solve_market(
     reference_price: float = 85.0,
     ship_day_cost: float = 1.0,
     shut_in_penalty: float = DEFAULT_SHUT_IN_PENALTY,
+    expected_flows: dict[tuple[str, str], float] | None = None,
+    bilateral_weight: float = 0.5,
 ) -> MarketSolution:
     """Welfare-maximizing market clearing with elastic demand.
 
@@ -96,9 +98,25 @@ def solve_market(
 
     utility = a @ d - 0.5 * cp.sum(cp.multiply(b, cp.square(d)))
     shipping = ship_day_cost * (transit @ x)
-    objective = cp.Maximize(
-        utility - shipping - shut_in_penalty * cp.sum(s)
-    )
+    obj_terms = [utility, -shipping, -shut_in_penalty * cp.sum(s)]
+
+    # Optional bilateral-flow anchor: penalize squared deviation of LP edge
+    # flows from observed-routing-derived expected flows. Biases base routing
+    # toward UN Comtrade patterns; LP can still deviate when capacity binds.
+    if expected_flows is not None and bilateral_weight > 0:
+        exp_vec = np.array(
+            [expected_flows.get(edges[j], 0.0) for j in range(m)]
+        )
+        if np.any(exp_vec > 0):
+            # Only penalize edges that have an expectation; un-anchored edges
+            # are free to flow as the LP optimizes.
+            mask = (exp_vec > 0).astype(float)
+            obj_terms.append(
+                -bilateral_weight
+                * cp.sum(cp.multiply(mask, cp.square(x - exp_vec)))
+            )
+
+    objective = cp.Maximize(sum(obj_terms))
 
     problem = cp.Problem(
         objective,

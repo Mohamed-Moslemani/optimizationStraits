@@ -1,3 +1,4 @@
+from .bilateral import BilateralFlow, expected_edge_flows, load_bilateral
 from .graph import (
     Basin,
     Coastline,
@@ -15,13 +16,16 @@ from .resilience import strait_importance
 
 __all__ = [
     "Basin",
+    "BilateralFlow",
     "Coastline",
     "Country",
     "Strait",
     "MarketSolution",
     "build_oil_graph",
     "balance_supply_demand",
+    "expected_edge_flows",
     "load_basins",
+    "load_bilateral",
     "load_coastlines",
     "load_countries",
     "load_straits",

@@ -6,10 +6,11 @@ Scope: global **crude oil** seaborne trade, approximate 2023. Focused on methodo
 
 | File | Rows | Purpose |
 |---|---|---|
-| `countries.csv` | 34 | Oil producers and consumers (iso3, name, production_mbd, consumption_mbd) |
+| `countries.csv` | 38 | Oil producers and consumers (iso3, name, production_mbd, consumption_mbd) |
 | `basins.csv` | 14 | Ocean-region waypoints (Persian Gulf, Indian Ocean, Mediterranean, ...) |
 | `coastlines.csv` | 55 | Country ↔ basin adjacency (which basins each country has ports on) |
-| `straits.csv` | 15 | Chokepoints (EIA-tracked) plus open-ocean edges connecting basins |
+| `straits.csv` | 18 | Chokepoints (EIA-tracked) plus alternative routes and open-ocean edges |
+| `bilateral_flows_2023.csv` | 80 | Top exporter→importer pairs in mb/d (UN Comtrade-style) |
 
 All flow figures are in **million barrels per day (mb/d)**. Costs (transit_days) are in **days**.
 
@@ -31,13 +32,13 @@ Capacities are **nominal upper bounds** derived from observed traffic plus physi
 ### Distances and transit times
 Computed from representative port-to-port sea distances at a VLCC speed of ~14 knots laden. For v2, replace with the `searoute-py` package for reproducible great-circle-plus-chokepoint routing.
 
-### Bilateral trade flows (NOT INCLUDED in v1)
-The natural next step is a `bilateral_flows.csv` with exporter × importer × year cells. Best free sources:
-- **UN Comtrade** HS code 2709 (crude petroleum) — https://comtradeplus.un.org
-- **CREA Russia fossil-fuel tracker** for 2022+ Russian flows — https://energyandcleanair.org
-- **Eurostat Comext** for EU imports — https://ec.europa.eu/eurostat
+### Bilateral trade flows
+`bilateral_flows_2023.csv` contains the top ~80 exporter→importer pairs, used as a soft anchor in the LP (penalty on edge flows that deviate from observed-routing-derived expectations). Sources are approximate annualized values from:
+- **EIA International Energy Statistics** — https://www.eia.gov/international/data/world (US imports/exports, headline source-destination pairs)
+- **CREA Russian fossil-fuel tracker** — https://energyandcleanair.org (Russian post-2022 reroutings)
+- **Eurostat Comext** (HS 2709) — https://ec.europa.eu/eurostat (EU imports by partner)
 
-See project memory for why we deferred these — they require ~a day of cleaning and attribution work (re-exports via Singapore/Netherlands, dark-fleet flows, pipeline vs seaborne separation).
+The numbers are rounded to 0.1 mb/d and don't capture month-to-month variation. For a publication-quality dataset, replace with a UN Comtrade HS 2709 bulk download for the target year.
 
 ## Caveats (read before citing anything)
 

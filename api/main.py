@@ -17,7 +17,9 @@ from pydantic import BaseModel, Field
 from straitgraph import (
     balance_supply_demand,
     build_oil_graph,
+    expected_edge_flows,
     load_basins,
+    load_bilateral,
     load_coastlines,
     load_countries,
     load_straits,
@@ -29,11 +31,14 @@ DATA_DIR = Path(__file__).resolve().parents[1] / "data"
 
 @lru_cache(maxsize=1)
 def _raw_data():
+    bilateral_path = DATA_DIR / "bilateral_flows_2023.csv"
+    bilateral = load_bilateral(bilateral_path) if bilateral_path.exists() else []
     return (
         load_countries(DATA_DIR / "countries.csv"),
         load_basins(DATA_DIR / "basins.csv"),
         load_coastlines(DATA_DIR / "coastlines.csv"),
         load_straits(DATA_DIR / "straits.csv"),
+        bilateral,
     )
 
 
@@ -62,6 +67,10 @@ class Scenario(BaseModel):
     reference_price_usd_per_bbl: float = 85.0      # Brent spot proxy
     ship_day_cost_usd_per_bbl: float = 1.0         # VLCC charter+fuel amortized
     demand_elasticity: float = 0.2                 # short-run oil price elasticity
+    # Bilateral-flow anchoring: 0 = pure LP optimization, higher values pull
+    # routing toward observed UN Comtrade-style patterns. 0.5 is a moderate
+    # default that fits base case to reality without over-constraining shocks.
+    bilateral_anchor_weight: float = 0.5
 
 
 class FlowDTO(BaseModel):
@@ -138,7 +147,7 @@ class WorldDTO(BaseModel):
 
 @app.get("/world", response_model=WorldDTO)
 def get_world() -> WorldDTO:
-    countries, basins, coastlines, straits = _raw_data()
+    countries, basins, coastlines, straits, _ = _raw_data()
     return WorldDTO(
         countries=[
             CountryDTO(
@@ -176,7 +185,7 @@ def get_world() -> WorldDTO:
 
 
 def _solve_one(scenario: Scenario, with_importance: bool = True):
-    countries, basins, coastlines, straits = _raw_data()
+    countries, basins, coastlines, straits, bilateral = _raw_data()
 
     patched_countries = [
         c.__class__(
@@ -214,15 +223,19 @@ def _solve_one(scenario: Scenario, with_importance: bool = True):
         )
 
     g = build_oil_graph(patched_countries, basins, coastlines, patched_straits)
-    # Pre-balance so total net supply == total net demand_max. Real-world data
-    # nets to a small global mismatch (inventories absorb the rest); without
-    # this, the LP would price the gap as a structural shortage.
     balance_supply_demand(g)
+    expected = (
+        expected_edge_flows(g, bilateral)
+        if bilateral and scenario.bilateral_anchor_weight > 0
+        else None
+    )
     sol = solve_market(
         g,
         elasticity=scenario.demand_elasticity,
         reference_price=scenario.reference_price_usd_per_bbl,
         ship_day_cost=scenario.ship_day_cost_usd_per_bbl,
+        expected_flows=expected,
+        bilateral_weight=scenario.bilateral_anchor_weight,
     )
     imp: dict[str, float | None] = {}
     if with_importance and sol.status in ("optimal", "optimal_inaccurate"):
@@ -239,11 +252,19 @@ def _strait_importance_with_pricing(g, scenario):
     cost) when the strait is removed. Combining all three captures both
     "freight gets more expensive" and "less demand cleared" effects.
     """
+    _, _, _, _, bilateral = _raw_data()
+    expected = (
+        expected_edge_flows(g, bilateral)
+        if bilateral and scenario.bilateral_anchor_weight > 0
+        else None
+    )
     base = solve_market(
         g,
         elasticity=scenario.demand_elasticity,
         reference_price=scenario.reference_price_usd_per_bbl,
         ship_day_cost=scenario.ship_day_cost_usd_per_bbl,
+        expected_flows=expected,
+        bilateral_weight=scenario.bilateral_anchor_weight,
     )
 
     def welfare_loss(sol):
@@ -266,11 +287,18 @@ def _strait_importance_with_pricing(g, scenario):
     for sid, edge_list in strait_edges.items():
         h = g.copy()
         h.remove_edges_from(edge_list)
+        h_expected = (
+            expected_edge_flows(h, bilateral)
+            if bilateral and scenario.bilateral_anchor_weight > 0
+            else None
+        )
         sol = solve_market(
             h,
             elasticity=scenario.demand_elasticity,
             reference_price=scenario.reference_price_usd_per_bbl,
             ship_day_cost=scenario.ship_day_cost_usd_per_bbl,
+            expected_flows=h_expected,
+            bilateral_weight=scenario.bilateral_anchor_weight,
         )
         if sol.status in ("optimal", "optimal_inaccurate"):
             result[sid] = welfare_loss(sol) - baseline

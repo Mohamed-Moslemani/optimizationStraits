@@ -10,7 +10,9 @@ from pathlib import Path
 from straitgraph import (
     balance_supply_demand,
     build_oil_graph,
+    expected_edge_flows,
     load_basins,
+    load_bilateral,
     load_coastlines,
     load_countries,
     load_straits,
@@ -23,16 +25,18 @@ DATA_DIR = Path(__file__).resolve().parents[1] / "data"
 
 
 def _load():
+    bp = DATA_DIR / "bilateral_flows_2023.csv"
     return (
         load_countries(DATA_DIR / "countries.csv"),
         load_basins(DATA_DIR / "basins.csv"),
         load_coastlines(DATA_DIR / "coastlines.csv"),
         load_straits(DATA_DIR / "straits.csv"),
+        load_bilateral(bp) if bp.exists() else [],
     )
 
 
 def _solve(scenario: dict, base_for_pricing: dict | None = None) -> tuple[object, dict[str, float], dict[str, float]]:
-    countries, basins, coastlines, straits = _load()
+    countries, basins, coastlines, straits, bilateral = _load()
     patched_countries = [
         c.__class__(
             iso3=c.iso3,
@@ -68,11 +72,15 @@ def _solve(scenario: dict, base_for_pricing: dict | None = None) -> tuple[object
         )
     g = build_oil_graph(patched_countries, basins, coastlines, patched_straits)
     balance_supply_demand(g)
+    bw = scenario.get("bilateral_anchor_weight", 0.5)
+    expected = expected_edge_flows(g, bilateral) if bilateral and bw > 0 else None
     sol = solve_market(
         g,
         elasticity=scenario.get("demand_elasticity", 0.2),
         reference_price=scenario.get("reference_price_usd_per_bbl", 85.0),
         ship_day_cost=scenario.get("ship_day_cost_usd_per_bbl", 1.0),
+        expected_flows=expected,
+        bilateral_weight=bw,
     )
     # Strait flows: sum each strait_id over basin -> mid edges
     strait_flows: dict[str, float] = {}
