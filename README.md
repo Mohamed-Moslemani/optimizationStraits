@@ -100,11 +100,59 @@ The three `INFEASIBLE` labels are a feature of the v1 graph, not a claim that gl
 
 Suez showing only `+1.6` matches the real 2024 experience: tankers rerouted around the Cape of Good Hope at measurable but manageable cost.
 
+## Talking to the API directly with `curl`
+
+Once the backend is running on `:7009`, every UI interaction is also a single
+JSON POST. Useful for scripting, sanity-checking, or showing the model to
+someone over chat.
+
+**Base case (no perturbations):**
+```bash
+curl -s -X POST http://localhost:7009/solve \
+  -H 'Content-Type: application/json' -d '{}' | python -m json.tool | head -30
+```
+
+**Close the Strait of Hormuz:**
+```bash
+curl -s -X POST http://localhost:7009/solve \
+  -H 'Content-Type: application/json' \
+  -d '{"closed_straits":["hormuz"]}' \
+  | python -c "import json,sys;d=json.load(sys.stdin);print(f\"Brent ${d['global_avg_price_usd']:.2f}/bbl ({d['global_avg_price_delta_usd']:+.2f}); shut-in {d['total_shut_in_mbd']:.1f} mb/d\")"
+```
+
+**Red Sea 2024 crisis (Bab-el-Mandeb + Suez at ~30%):**
+```bash
+curl -s -X POST http://localhost:7009/solve \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "strait_capacity_overrides": {"bab_el_mandeb": 3.0, "suez": 4.5},
+    "demand_elasticity": 0.07,
+    "ship_day_cost_usd_per_bbl": 2.2
+  }' | python -m json.tool | grep -E 'global_avg|delta|cape|shut'
+```
+
+**See the world snapshot (countries, basins, straits with coordinates):**
+```bash
+curl -s http://localhost:7009/world | python -m json.tool | head -40
+```
+
+Full request schema is at `http://localhost:7009/docs` (FastAPI Swagger).
+
 ## Run the tests
 
 ```bash
 .venv/bin/python -m pytest tests/ -q
 ```
+
+## Run the historical calibration
+
+```bash
+.venv/bin/python -m calibration.run
+```
+
+Compares model output against published market data for three documented
+shocks (Ever Given 2021, Russia sanctions 2022, Red Sea 2024). See
+[calibration/README.md](calibration/README.md).
 
 ## Data sources
 
