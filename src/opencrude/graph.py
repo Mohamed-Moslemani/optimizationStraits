@@ -37,10 +37,11 @@ class Strait:
     name: str
     basin_a: str
     basin_b: str
-    kind: str           # "chokepoint" or "open"
+    kind: str           # "chokepoint" or "open" or "pipeline"
     capacity_mbd: float
     distance_nm: float
     transit_days: float
+    risk_premium_usd_per_bbl: float = 0.0
 
 
 COASTAL_ACCESS_COST = 0.25  # ship-days, lump for port -> basin entry
@@ -116,6 +117,7 @@ def build_oil_graph(
             capacity=COASTAL_CAPACITY,
             transit_days=COASTAL_ACCESS_COST,
             distance_nm=0.0,
+            risk_premium_usd_per_bbl=0.0,
         )
         if node_data["supply"] > 0:
             g.add_edge(coast.iso3, b, **attrs)
@@ -149,6 +151,9 @@ def build_oil_graph(
             capacity=s.capacity_mbd,
             transit_days=s.transit_days / 2.0,
             distance_nm=s.distance_nm / 2.0,
+            # Half-edge gets half the strait's risk premium so total
+            # round-trip through the midpoint = full premium per barrel.
+            risk_premium_usd_per_bbl=s.risk_premium_usd_per_bbl / 2.0,
         )
         g.add_edge(a, mid, **half)
         g.add_edge(mid, a, **half)
@@ -231,6 +236,7 @@ def load_straits(path: Path) -> list[Strait]:
             capacity_mbd=float(r["capacity_mbd"]),
             distance_nm=float(r["distance_nm"]),
             transit_days=float(r["transit_days"]),
+            risk_premium_usd_per_bbl=float(r.get("risk_premium_usd_per_bbl", 0.0)),
         )
         for r in df.to_dict(orient="records")
     ]

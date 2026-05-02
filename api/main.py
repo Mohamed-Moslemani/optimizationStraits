@@ -71,6 +71,11 @@ class Scenario(BaseModel):
     # routing toward observed UN Comtrade-style patterns. 0.5 is a moderate
     # default that fits base case to reality without over-constraining shocks.
     bilateral_anchor_weight: float = 0.5
+    # Per-strait risk premium overrides (USD/bbl). Adds to base shipping cost
+    # on every traversal of the strait. Captures insurance / war-risk
+    # surcharges (e.g., the Red Sea 2024 freight premium that wasn't
+    # transit-time, it was insurance).
+    strait_risk_premium_overrides: dict[str, float] = Field(default_factory=dict)
 
 
 class FlowDTO(BaseModel):
@@ -209,6 +214,9 @@ def _solve_one(scenario: Scenario, with_importance: bool = True):
         if s.strait_id in closed:
             continue
         cap = scenario.strait_capacity_overrides.get(s.strait_id, s.capacity_mbd)
+        risk = scenario.strait_risk_premium_overrides.get(
+            s.strait_id, s.risk_premium_usd_per_bbl
+        )
         patched_straits.append(
             s.__class__(
                 strait_id=s.strait_id,
@@ -219,6 +227,7 @@ def _solve_one(scenario: Scenario, with_importance: bool = True):
                 capacity_mbd=cap,
                 distance_nm=s.distance_nm,
                 transit_days=s.transit_days,
+                risk_premium_usd_per_bbl=risk,
             )
         )
 

@@ -165,6 +165,13 @@ EPISODES: list[Episode] = [
             "demand_elasticity": 0.07,
             # VLCC rates roughly tripled on Asia-Europe routes
             "ship_day_cost_usd_per_bbl": 2.2,
+            # War-risk insurance: missile threat added a flat $/bbl surcharge
+            # on every barrel that still ran the gauntlet, separate from
+            # transit-time freight. ~$3/bbl per Lloyd's market reports Q1 2024.
+            "strait_risk_premium_overrides": {
+                "bab_el_mandeb": 3.0,
+                "suez": 2.0,
+            },
         },
         observed={
             "brent_change_usd": ObservedMetric(

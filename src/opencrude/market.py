@@ -73,6 +73,12 @@ def solve_market(
 
     cap = np.array([g.edges[e]["capacity"] for e in edges])
     transit = np.array([g.edges[e][cost_attr] for e in edges])
+    # Per-edge risk premium (USD/bbl). Adds to shipping cost on every barrel
+    # that traverses the edge — captures insurance / war-risk surcharges that
+    # are flat in $/bbl rather than scaled by transit time.
+    risk = np.array(
+        [g.edges[e].get("risk_premium_usd_per_bbl", 0.0) for e in edges]
+    )
 
     supply = np.array([g.nodes[u].get("supply", 0.0) for u in nodes])
     demand_max = np.array([g.nodes[u].get("demand", 0.0) for u in nodes])
@@ -104,7 +110,7 @@ def solve_market(
     shut_in_bound = s <= supply
 
     utility = a @ d - 0.5 * cp.sum(cp.multiply(b, cp.square(d)))
-    shipping = ship_day_cost * (transit @ x)
+    shipping = ship_day_cost * (transit @ x) + risk @ x
     overflow_cost = overflow_penalty * cp.sum_squares(o)
     obj_terms = [utility, -shipping, -shut_in_penalty * cp.sum(s), -overflow_cost]
 
@@ -176,7 +182,7 @@ def solve_market(
     # LP's flow solution: if a node ships to a downstream node, its price =
     # downstream price - per-unit shipping cost on that edge (the cheapest
     # downstream is the binding one). Iterates a few times to settle the chain.
-    edge_cost_per_unit = ship_day_cost * transit
+    edge_cost_per_unit = ship_day_cost * transit + risk
     for _ in range(20):
         changed = False
         for j, (u, v) in enumerate(edges):
@@ -202,7 +208,7 @@ def solve_market(
     total_demand_response = float(np.sum(demand_max - d_v))
     total_shut_in = float(np.sum(s_v))
     transit_cost = float(np.dot(transit, x_v))
-    shipping_usd = float(ship_day_cost * transit_cost)
+    shipping_usd = float(ship_day_cost * transit_cost + np.dot(risk, x_v))
 
     return MarketSolution(
         total_cost=transit_cost,
