@@ -56,7 +56,8 @@ export default function ResultsPanel({ world, solution }: Props) {
     .slice(0, 6);
 
   const hasGap =
-    solution.total_unmet_mbd > 0.01 || solution.total_shut_in_mbd > 0.01;
+    solution.total_demand_response_mbd > 0.01 ||
+    solution.total_shut_in_mbd > 0.01;
 
   return (
     <div className="flex h-full flex-col overflow-y-auto p-5">
@@ -80,9 +81,9 @@ export default function ResultsPanel({ world, solution }: Props) {
 
       <div className="mt-3 grid grid-cols-2 gap-2">
         <Stat
-          label="Total freight"
-          value={solution.total_cost.toFixed(0)}
-          sub="barrel-days"
+          label="Freight bill"
+          value={`$${(solution.total_shipping_usd / 1000).toFixed(1)}M`}
+          sub="USD/day"
         />
         <Stat
           label="Volume"
@@ -149,7 +150,7 @@ function SupplyGap({
   solution: Solution;
   countryMap: Record<string, { name: string }>;
 }) {
-  const unmet = Object.entries(solution.unmet_demand_mbd)
+  const cuts = Object.entries(solution.demand_cut_mbd)
     .filter(([, v]) => v > 0.01)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5);
@@ -161,19 +162,21 @@ function SupplyGap({
   return (
     <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
       <div className="text-[10px] font-semibold uppercase tracking-wider text-amber-800">
-        Supply gap
+        Quantity response
       </div>
       <div className="mt-1 grid grid-cols-2 gap-3">
         <div>
           <div className="font-mono text-lg font-semibold text-amber-900">
-            {solution.total_unmet_mbd.toFixed(1)}
+            {solution.total_demand_response_mbd.toFixed(1)}
             <span className="ml-1 text-[10px] font-normal text-amber-700">
               mb/d
             </span>
           </div>
-          <div className="text-[10px] text-amber-700">unmet demand</div>
+          <div className="text-[10px] text-amber-700">
+            demand cut (high prices)
+          </div>
           <ul className="mt-1 text-[11px] text-amber-900">
-            {unmet.map(([iso3, v]) => (
+            {cuts.map(([iso3, v]) => (
               <li key={iso3} className="flex justify-between">
                 <span className="truncate">
                   {countryMap[iso3]?.name ?? iso3}

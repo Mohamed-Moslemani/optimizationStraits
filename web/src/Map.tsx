@@ -77,7 +77,7 @@ function countryGeoJson(
     const net = prod - cons;
     const delivered = solution?.delivered_prices_usd[c.iso3] ?? 0;
     const delta = solution?.price_delta_vs_base_usd[c.iso3] ?? 0;
-    const unmet = solution?.unmet_demand_mbd[c.iso3] ?? 0;
+    const cut = solution?.demand_cut_mbd[c.iso3] ?? 0;
     const shutIn = solution?.shut_in_supply_mbd[c.iso3] ?? 0;
     return {
       type: "Feature" as const,
@@ -89,7 +89,7 @@ function countryGeoJson(
         net,
         delivered,
         delta,
-        unmet,
+        cut,
         shutIn,
       },
       geometry: { type: "Point" as const, coordinates: [c.lon, c.lat] },
@@ -360,11 +360,11 @@ export default function WorldMap({
         const delivered = Number(p.delivered);
         const delta = Number(p.delta);
         const deltaSign = delta > 0.01 ? "up" : delta < -0.01 ? "down" : "";
-        const unmet = Number(p.unmet);
+        const cut = Number(p.cut);
         const shutIn = Number(p.shutIn);
         const gapBlock =
-          unmet > 0.01
-            ? `<div class="popup-row"><span>unmet demand</span><span class="up">${unmet.toFixed(2)} mb/d</span></div>`
+          cut > 0.01
+            ? `<div class="popup-row"><span>demand cut</span><span class="up">${cut.toFixed(2)} mb/d</span></div>`
             : shutIn > 0.01
               ? `<div class="popup-row"><span>shut-in supply</span><span class="up">${shutIn.toFixed(2)} mb/d</span></div>`
               : "";
