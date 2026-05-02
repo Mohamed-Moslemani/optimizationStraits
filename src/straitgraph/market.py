@@ -42,6 +42,7 @@ def solve_market(
     shut_in_penalty: float = DEFAULT_SHUT_IN_PENALTY,
     expected_flows: dict[tuple[str, str], float] | None = None,
     bilateral_weight: float = 0.5,
+    overflow_penalty: float = 5.0,
 ) -> MarketSolution:
     """Welfare-maximizing market clearing with elastic demand.
 
@@ -90,15 +91,22 @@ def solve_market(
     x = cp.Variable(m, nonneg=True)
     d = cp.Variable(n, nonneg=True)
     s = cp.Variable(n, nonneg=True)
+    # Capacity overflow: per-edge slack o_e such that x_e ≤ cap_e + o_e.
+    # Quadratic penalty on overflow models the rising marginal cost of
+    # squeezing more transits through a constrained route (slow-steaming,
+    # smaller tankers, longer queues, insurance surcharges). Per Dr Ali's
+    # note: "say it costs so much instead of hard constraints."
+    o = cp.Variable(m, nonneg=True)
 
     flow_balance = A @ x == supply - s - d
-    capacity = x <= cap
+    capacity = x <= cap + o
     demand_bound = d <= demand_max
     shut_in_bound = s <= supply
 
     utility = a @ d - 0.5 * cp.sum(cp.multiply(b, cp.square(d)))
     shipping = ship_day_cost * (transit @ x)
-    obj_terms = [utility, -shipping, -shut_in_penalty * cp.sum(s)]
+    overflow_cost = overflow_penalty * cp.sum_squares(o)
+    obj_terms = [utility, -shipping, -shut_in_penalty * cp.sum(s), -overflow_cost]
 
     # Optional bilateral-flow anchor: penalize squared deviation of LP edge
     # flows from observed-routing-derived expected flows. Biases base routing
@@ -122,6 +130,7 @@ def solve_market(
         objective,
         [flow_balance, capacity, demand_bound, shut_in_bound],
     )
+    _ = o  # silence unused-warning in case future paths skip overflow extraction
     # CLARABEL is more robust for these QPs than OSQP at certain elasticities;
     # OSQP hit iteration limits at ε≈0.3-0.5 for our network.
     try:
