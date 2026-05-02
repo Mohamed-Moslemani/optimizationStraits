@@ -12,6 +12,7 @@ Scope: global **crude oil** seaborne trade, approximate 2023. Focused on methodo
 | `straits.csv` | 18 | Chokepoints (EIA-tracked) plus alternative routes and open-ocean edges |
 | `bilateral_flows_2023.csv` | 137 | Top exporter→importer pairs in mb/d (UN Comtrade HS 2709) |
 | `brent_monthly_usd.csv` | 467 | EIA monthly Brent spot price 1987–2026 (USD/bbl) |
+| `kilian_igrea_monthly.csv` | 699 | Kilian's Index of Global Real Economic Activity 1968–2026 (deviation %) |
 
 All flow figures are in **million barrels per day (mb/d)**. Costs (transit_days) are in **days**.
 
@@ -51,6 +52,19 @@ Coverage: ~28 mb/d total (vs real seaborne crude ~40 mb/d). Gaps are countries t
 `brent_monthly_usd.csv` contains EIA's [Europe Brent Spot Price FOB (RBRTE) monthly series](https://www.eia.gov/dnav/pet/hist/rbrteM.htm) from May 1987 to the present. Used by the calibration runner to pin the LP's reference price to the actual monthly Brent at each historical episode's date (instead of the default $85). This honors the data-hygiene point of Conlon, Cotter & Eyiah-Donkor (2024) "Forecasting the price of oil: A cautionary note", J. Commodity Markets — they show that *which* oil price series you use materially changes results.
 
 To refresh: `curl -o /tmp/brent.xls https://www.eia.gov/dnav/pet/hist_xls/RBRTEm.xls && python -c "import pandas as pd; df = pd.read_excel('/tmp/brent.xls', sheet_name='Data 1', skiprows=2); df.columns = ['date','price_usd_per_bbl']; df = df.dropna(); df['period'] = df['date'].dt.strftime('%Y-%m'); df['price_usd_per_bbl'] = df['price_usd_per_bbl'].round(2); df[['period','price_usd_per_bbl']].to_csv('data/brent_monthly_usd.csv', index=False)"`.
+
+### Kilian's Index of Global Real Economic Activity (IGREA)
+`kilian_igrea_monthly.csv` is Lutz Kilian's monthly index from the [Dallas Fed](https://www.dallasfed.org/research/igrea), running 1968 to present. Constructed from dry bulk shipping rates, it's the standard demand-side proxy in the oil macro literature: positive values mean above-trend global activity (oil demand likely above trend), negative values mean below-trend (e.g., -83 in April 2020 during COVID, -36 in 2009 during the GFC).
+
+Used by the calibration runner for **context only** — printed alongside each episode so you see whether the shock occurred during a tight or slack global market. Not auto-applied to demand: that's a research call documented in `opencrude.prices.kilian_demand_scale` (a 1-line helper to convert IGREA → multiplicative demand factor, default sensitivity 0.001 per IGREA point).
+
+Sample readings:
+- 2020-04 (COVID): -83.29
+- 2021-03 (Ever Given): +26.28
+- 2022-05 (Russia sanctions Q2): +56.87  ← partly explains record-high Brent
+- 2024-02 (Red Sea): +20.62
+
+To refresh: `curl -o /tmp/igrea.xlsx https://www.dallasfed.org/-/media/Documents/research/igrea/igrea.xls && python -c "import pandas as pd; df = pd.read_excel('/tmp/igrea.xlsx', sheet_name='Kilian Index'); df.columns=['date','igrea_index']; df=df.dropna(); df['period']=df['date'].dt.strftime('%Y-%m'); df['igrea_index']=df['igrea_index'].round(3); df[['period','igrea_index']].to_csv('data/kilian_igrea_monthly.csv', index=False)"`.
 
 ## Caveats (read before citing anything)
 

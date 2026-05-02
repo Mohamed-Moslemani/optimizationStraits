@@ -12,11 +12,13 @@ from opencrude import (
     brent_at,
     build_oil_graph,
     expected_edge_flows,
+    kilian_at,
     load_basins,
     load_bilateral,
     load_brent_monthly,
     load_coastlines,
     load_countries,
+    load_kilian_monthly,
     load_straits,
     solve_market,
 )
@@ -158,6 +160,8 @@ def run() -> None:
 
     brent_path = DATA_DIR / "brent_monthly_usd.csv"
     brent_series = load_brent_monthly(brent_path) if brent_path.exists() else None
+    kilian_path = DATA_DIR / "kilian_igrea_monthly.csv"
+    kilian_series = load_kilian_monthly(kilian_path) if kilian_path.exists() else None
 
     for ep in EPISODES:
         # Period-accurate Brent: pin the reference price to the actual monthly
@@ -188,6 +192,10 @@ def run() -> None:
         print(f"  Base parameters: {base_scenario}")
         if ep.brent_period:
             print(f"  Brent reference for {ep.brent_period}: ${scenario.get('reference_price_usd_per_bbl', 85):.2f}/bbl (EIA monthly)")
+            if kilian_series is not None:
+                ig = kilian_at(kilian_series, ep.brent_period)
+                tone = "above-trend" if ig > 0 else "below-trend"
+                print(f"  Kilian IGREA  for {ep.brent_period}: {ig:+.2f} ({tone} global activity)")
         print(f"  Notes:    {ep.description}")
         print(f"  Base avg price: ${base_agg['global_avg_price_usd']:.2f}/bbl   "
               f"Base Cape flow: {base_flows.get('satl_io', 0):.2f} mb/d")
