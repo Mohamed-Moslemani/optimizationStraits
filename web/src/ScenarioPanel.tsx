@@ -39,24 +39,33 @@ export default function ScenarioPanel({
         live.
       </p>
 
-      <SectionHeader title="Presets" className="mt-6" />
+      <SectionHeader title="Historical episodes" className="mt-6" />
+      <p className="mt-1 text-[10px] leading-snug text-slate-500">
+        Period-accurate Brent + freight cost. Auto-loaded from EIA.
+      </p>
       <div className="mt-2 flex flex-col gap-1.5">
-        {PRESETS.map((p) => (
-          <button
+        {PRESETS.filter((p) => p.category === "historical").map((p) => (
+          <PresetButton key={p.id} preset={p} setScenario={setScenario} />
+        ))}
+      </div>
+
+      <SectionHeader title="What-if scenarios" className="mt-6" />
+      <p className="mt-1 text-[10px] leading-snug text-slate-500">
+        Synthetic stress tests. Inherit your current Brent / freight /
+        elasticity sliders.
+      </p>
+      <div className="mt-2 flex flex-col gap-1.5">
+        {PRESETS.filter((p) => p.category === "what_if").map((p) => (
+          <PresetButton
             key={p.id}
-            onClick={() =>
-              setScenario({
-                ...p.build(),
-                reference_price_usd_per_bbl: scenario.reference_price_usd_per_bbl,
-                ship_day_cost_usd_per_bbl: scenario.ship_day_cost_usd_per_bbl,
-                demand_elasticity: scenario.demand_elasticity,
-              })
-            }
-            className="rounded-md border border-slate-200 bg-white px-3 py-2 text-left text-sm text-slate-700 transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-900"
-            title={p.description}
-          >
-            {p.label}
-          </button>
+            preset={p}
+            setScenario={setScenario}
+            inheritParams={{
+              reference_price_usd_per_bbl: scenario.reference_price_usd_per_bbl,
+              ship_day_cost_usd_per_bbl: scenario.ship_day_cost_usd_per_bbl,
+              demand_elasticity: scenario.demand_elasticity,
+            }}
+          />
         ))}
       </div>
 
@@ -86,6 +95,46 @@ export default function ScenarioPanel({
         setScenario={setScenario}
       />
     </div>
+  );
+}
+
+function PresetButton({
+  preset,
+  setScenario,
+  inheritParams,
+}: {
+  preset: import("./scenarios").Preset;
+  setScenario: (s: Scenario) => void;
+  inheritParams?: Partial<Scenario>;
+}) {
+  const isHistorical = preset.category === "historical";
+  return (
+    <button
+      onClick={() =>
+        setScenario({
+          ...preset.build(),
+          ...(inheritParams ?? {}),
+        })
+      }
+      className={`group rounded-md border px-3 py-2 text-left text-sm transition ${
+        isHistorical
+          ? "border-amber-200 bg-amber-50/40 text-slate-800 hover:border-amber-400 hover:bg-amber-50"
+          : "border-slate-200 bg-white text-slate-700 hover:border-sky-300 hover:bg-sky-50 hover:text-sky-900"
+      }`}
+      title={preset.description}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <span className="font-medium">{preset.label}</span>
+        {preset.brent_usd !== undefined && (
+          <span className="font-mono text-[10px] text-amber-700">
+            ${preset.brent_usd.toFixed(0)}
+          </span>
+        )}
+      </div>
+      <div className="mt-0.5 text-[10px] leading-snug text-slate-500 group-hover:text-slate-600">
+        {preset.description}
+      </div>
+    </button>
   );
 }
 
