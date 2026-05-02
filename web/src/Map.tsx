@@ -132,7 +132,7 @@ export default function WorldMap({
         data: { type: "FeatureCollection", features: [] },
       });
 
-      // Strait glow (soft halo underneath)
+      // Strait glow (soft halo underneath) — wider, brighter
       map.addLayer({
         id: "strait-glow",
         type: "line",
@@ -141,43 +141,27 @@ export default function WorldMap({
         paint: {
           "line-color": [
             "case",
-            ["get", "closed"],
-            "#dc2626",
-            ["==", ["get", "kind"], "pipeline"],
-            "#b45309",
+            ["get", "closed"], "#dc2626",
+            ["==", ["get", "kind"], "pipeline"], "#92400e",
             ["==", ["get", "kind"], "chokepoint"],
             [
-              "interpolate",
-              ["linear"],
-              ["get", "utilisation"],
-              0,
-              "#94a3b8",
-              0.5,
-              "#f59e0b",
-              1,
-              "#ef4444",
+              "interpolate", ["linear"], ["get", "utilisation"],
+              0, "#0ea5e9",     // sky-500: low util = ocean blue (peaceful)
+              0.5, "#f59e0b",   // amber-500: medium = warming
+              1, "#dc2626",     // red-600: at capacity = stress
             ],
-            "#94a3b8",
+            "#0ea5e9",
           ],
           "line-width": [
-            "interpolate",
-            ["linear"],
-            ["get", "flow"],
-            0,
-            2,
-            5,
-            6,
-            15,
-            12,
-            25,
-            16,
+            "interpolate", ["linear"], ["get", "flow"],
+            0, 4, 5, 12, 15, 22, 25, 30,
           ],
-          "line-opacity": 0.18,
-          "line-blur": 6,
+          "line-opacity": 0.22,
+          "line-blur": 10,
         },
       });
 
-      // Main strait line
+      // Main strait line — bolder, with line-gradient (origin→dest direction read)
       map.addLayer({
         id: "strait-lines",
         type: "line",
@@ -186,110 +170,117 @@ export default function WorldMap({
         paint: {
           "line-color": [
             "case",
-            ["get", "closed"],
-            "#dc2626",
-            ["==", ["get", "kind"], "pipeline"],
-            "#b45309",
+            ["get", "closed"], "#dc2626",
+            ["==", ["get", "kind"], "pipeline"], "#b45309",
             ["==", ["get", "kind"], "chokepoint"],
             [
-              "interpolate",
-              ["linear"],
-              ["get", "utilisation"],
-              0,
-              "#64748b",
-              0.5,
-              "#f59e0b",
-              1,
-              "#ef4444",
+              "interpolate", ["linear"], ["get", "utilisation"],
+              0, "#0284c7",   // sky-600: low util
+              0.5, "#ea580c", // orange-600: medium
+              1, "#b91c1c",   // red-700: critical
             ],
-            "#94a3b8",
+            "#0284c7",
           ],
           "line-width": [
-            "interpolate",
-            ["linear"],
-            ["get", "flow"],
-            0,
-            1.2,
-            5,
-            2.2,
-            15,
-            3.6,
-            25,
-            4.8,
+            "interpolate", ["linear"], ["get", "flow"],
+            0, 1.5, 5, 3.0, 15, 5.0, 25, 7.0,
           ],
           "line-dasharray": [
             "case",
-            ["==", ["get", "kind"], "open"],
-            ["literal", [4, 3]],
-            ["==", ["get", "kind"], "pipeline"],
-            ["literal", [1, 2]],
+            ["==", ["get", "kind"], "open"], ["literal", [4, 3]],
+            ["==", ["get", "kind"], "pipeline"], ["literal", [1, 2]],
             ["literal", [1, 0]],
           ],
-          "line-opacity": 0.95,
+          "line-opacity": 1.0,
         },
       });
 
-      // Country markers
+      // Direction arrows along high-flow straits
+      map.addLayer({
+        id: "strait-arrows",
+        type: "symbol",
+        source: "straits",
+        filter: [">", ["get", "flow"], 1.0],
+        layout: {
+          "symbol-placement": "line",
+          "symbol-spacing": 110,
+          "text-field": "▶",
+          "text-size": 12,
+          "text-keep-upright": false,
+          "text-rotation-alignment": "map",
+          "text-allow-overlap": true,
+          "text-ignore-placement": true,
+        },
+        paint: {
+          "text-color": [
+            "case",
+            ["get", "closed"], "#7f1d1d",
+            ["==", ["get", "kind"], "pipeline"], "#78350f",
+            "#0c4a6e",
+          ],
+          "text-halo-color": "#ffffff",
+          "text-halo-width": 1.6,
+          "text-opacity": 0.85,
+        },
+      });
+
+      // Country markers — dramatically more visible
+      // Outer soft halo (suggests trade volume + draws the eye)
       map.addLayer({
         id: "country-halo",
         type: "circle",
         source: "countries",
         paint: {
           "circle-radius": [
-            "interpolate",
-            ["linear"],
-            ["abs", ["get", "net"]],
-            0,
-            4,
-            2,
-            8,
-            8,
-            14,
-            15,
-            20,
+            "interpolate", ["linear"], ["abs", ["get", "net"]],
+            0, 8, 2, 16, 8, 28, 15, 40,
           ],
           "circle-color": [
             "case",
-            [">", ["get", "net"], 0.1],
-            "#0d9488",
-            ["<", ["get", "net"], -0.1],
-            "#ea580c",
-            "#cbd5e1",
+            [">", ["get", "net"], 0.1], "#0f766e",     // teal-700
+            ["<", ["get", "net"], -0.1], "#c2410c",    // orange-700
+            "#94a3b8",
           ],
-          "circle-opacity": 0.12,
-          "circle-blur": 1.2,
+          "circle-opacity": 0.18,
+          "circle-blur": 0.9,
         },
       });
 
+      // Solid bright disc (the visible marker)
       map.addLayer({
         id: "country-circles",
         type: "circle",
         source: "countries",
         paint: {
           "circle-radius": [
-            "interpolate",
-            ["linear"],
-            ["abs", ["get", "net"]],
-            0,
-            3,
-            2,
-            5.5,
-            8,
-            9.5,
-            15,
-            13,
+            "interpolate", ["linear"], ["abs", ["get", "net"]],
+            0, 5, 2, 9, 8, 15, 15, 22,
           ],
           "circle-color": [
             "case",
-            [">", ["get", "net"], 0.1],
-            "#14b8a6",
-            ["<", ["get", "net"], -0.1],
-            "#f97316",
+            [">", ["get", "net"], 0.1], "#0d9488",   // teal-600 — deep green-blue
+            ["<", ["get", "net"], -0.1], "#ea580c",  // orange-600 — deep orange
             "#94a3b8",
           ],
-          "circle-opacity": 0.9,
+          "circle-opacity": 1.0,
           "circle-stroke-color": "#ffffff",
-          "circle-stroke-width": 1.5,
+          "circle-stroke-width": 2.5,
+        },
+      });
+
+      // Inner highlight ring for a "pin" feel (subtle 3D shading)
+      map.addLayer({
+        id: "country-highlight",
+        type: "circle",
+        source: "countries",
+        paint: {
+          "circle-radius": [
+            "interpolate", ["linear"], ["abs", ["get", "net"]],
+            0, 2, 2, 3.5, 8, 6, 15, 9,
+          ],
+          "circle-color": "#ffffff",
+          "circle-opacity": 0.35,
+          "circle-translate": [0, -1.5],
         },
       });
 
@@ -299,15 +290,16 @@ export default function WorldMap({
         source: "countries",
         layout: {
           "text-field": ["get", "iso3"],
-          "text-size": 10,
+          "text-size": 11,
           "text-anchor": "top",
-          "text-offset": [0, 0.8],
+          "text-offset": [0, 1.1],
           "text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"],
         },
         paint: {
-          "text-color": "#334155",
+          "text-color": "#0f172a",
           "text-halo-color": "#ffffff",
-          "text-halo-width": 1.5,
+          "text-halo-width": 2.0,
+          "text-halo-blur": 0.4,
         },
       });
 
@@ -423,37 +415,40 @@ export default function WorldMap({
 
 function MapLegend() {
   return (
-    <div className="pointer-events-none absolute bottom-4 left-4 rounded-md border border-slate-200 bg-white/90 p-3 text-xs text-slate-700 shadow-sm backdrop-blur">
-      <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+    <div className="pointer-events-none absolute bottom-4 left-4 rounded-md border border-slate-200 bg-white/95 p-3 text-xs text-slate-700 shadow-sm backdrop-blur">
+      <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
         Legend
       </div>
       <div className="flex items-center gap-2">
-        <span className="inline-block h-2.5 w-2.5 rounded-full bg-teal-500 ring-2 ring-white" />
-        exporter (net supply)
+        <span className="inline-block h-3 w-3 rounded-full bg-teal-600 ring-2 ring-white shadow-sm" />
+        <span>exporter (net supply)</span>
+      </div>
+      <div className="mt-1.5 flex items-center gap-2">
+        <span className="inline-block h-3 w-3 rounded-full bg-orange-600 ring-2 ring-white shadow-sm" />
+        <span>importer (net demand)</span>
+      </div>
+      <div className="mt-3 mb-0.5 text-[9px] font-semibold uppercase tracking-wider text-slate-500">
+        Strait flow / utilisation
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="inline-block h-1 w-7 bg-sky-600" />
+        <span>flowing freely</span>
       </div>
       <div className="mt-1 flex items-center gap-2">
-        <span className="inline-block h-2.5 w-2.5 rounded-full bg-orange-500 ring-2 ring-white" />
-        importer (net demand)
-      </div>
-      <div className="mt-2 flex items-center gap-2">
-        <span className="inline-block h-0.5 w-6 bg-slate-400" />
-        low utilisation
+        <span className="inline-block h-1.5 w-7 bg-orange-600" />
+        <span>medium pressure</span>
       </div>
       <div className="mt-1 flex items-center gap-2">
-        <span className="inline-block h-0.5 w-6 bg-amber-500" />
-        medium
+        <span className="inline-block h-2 w-7 bg-red-700" />
+        <span>near capacity</span>
+      </div>
+      <div className="mt-1.5 flex items-center gap-2">
+        <span className="inline-block h-0.5 w-7 border-t border-dashed border-sky-600" />
+        <span>open ocean</span>
       </div>
       <div className="mt-1 flex items-center gap-2">
-        <span className="inline-block h-0.5 w-6 bg-red-500" />
-        near capacity
-      </div>
-      <div className="mt-1 flex items-center gap-2">
-        <span className="inline-block h-0.5 w-6 border-t border-dashed border-slate-400" />
-        open ocean (uncapped)
-      </div>
-      <div className="mt-1 flex items-center gap-2">
-        <span className="inline-block h-0.5 w-6 border-t-2 border-dotted border-amber-700" />
-        pipeline
+        <span className="inline-block h-0.5 w-7 border-t-2 border-dotted border-amber-700" />
+        <span>pipeline</span>
       </div>
     </div>
   );
