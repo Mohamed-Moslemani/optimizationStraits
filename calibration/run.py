@@ -58,6 +58,7 @@ def _solve(scenario: dict, base_for_pricing: dict | None = None) -> tuple[object
     ]
     closed = set(scenario.get("closed_straits", []))
     cap_over = scenario.get("strait_capacity_overrides", {})
+    risk_over = scenario.get("strait_risk_premium_overrides", {})
     patched_straits = []
     for s in straits:
         if s.strait_id in closed:
@@ -72,6 +73,9 @@ def _solve(scenario: dict, base_for_pricing: dict | None = None) -> tuple[object
                 capacity_mbd=cap_over.get(s.strait_id, s.capacity_mbd),
                 distance_nm=s.distance_nm,
                 transit_days=s.transit_days,
+                risk_premium_usd_per_bbl=risk_over.get(
+                    s.strait_id, s.risk_premium_usd_per_bbl
+                ),
             )
         )
     g = build_oil_graph(patched_countries, basins, coastlines, patched_straits)
@@ -237,7 +241,9 @@ def run() -> None:
     print("  - no grade differentials (Brent vs Dubai vs Urals spreads)")
     print("  - steady-state: ignores expected duration of disruption")
     print("  - no inventories / SPR releases buffering short shocks")
-    print("  - insurance / war-risk premia not modeled separately from freight")
+    print("  - insurance / war-risk premium *is* now modeled (per-strait")
+    print("    risk_premium_usd_per_bbl, configurable per scenario), but the")
+    print("    period values used here are conservative — see episodes.py")
     print("=" * 78)
 
 
