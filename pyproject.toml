@@ -3,9 +3,9 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "straitgraph"
-version = "0.1.0"
-description = "Graph-theoretic analysis of maritime straits and global trade markets"
+name = "opencrude"
+version = "0.2.0"
+description = "OpenCrude — open-source what-if simulator for the transport-cost component of crude oil prices over the world's maritime chokepoints"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [

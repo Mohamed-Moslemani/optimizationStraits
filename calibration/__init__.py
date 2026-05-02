@@ -1,4 +1,4 @@
-"""Historical calibration of the straitgraph oil-market model.
+"""Historical calibration of the opencrude oil-market model.
 
 Run via:  python -m calibration.run
 """

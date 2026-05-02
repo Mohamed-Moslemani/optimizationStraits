@@ -1,7 +1,7 @@
 # Historical calibration
 
 This package runs three documented historical oil-market shocks through the
-straitgraph model and compares model output against published market data.
+opencrude model and compares model output against published market data.
 
 ```bash
 .venv/bin/python -m calibration.run

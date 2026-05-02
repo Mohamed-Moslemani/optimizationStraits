@@ -1,6 +1,6 @@
 # Project name — proposals
 
-The package is currently `straitgraph`. Comparable closed-source product:
+The package is currently `opencrude`. Comparable closed-source product:
 [oilshock.ai](https://oilshock.ai/#simulator). Our project is the open
 equivalent, with elastic demand, real Comtrade data, historical calibration,
 and an interactive UI.
@@ -107,13 +107,13 @@ If you want pure punch: **Choke**. Single syllable, exactly what the project is 
 
 Renaming touches:
 - `pyproject.toml` package name
-- `src/straitgraph/` directory and all imports
+- `src/opencrude/` directory and all imports
 - `web/package.json` name
 - `README.md`, `data/README.md`, `calibration/README.md`
 - API title in `api/main.py`
 - Docs / external references
 
-Estimate: 30-45 minutes for a clean rename. Single commit `rename: straitgraph -> <chosen>`.
+Estimate: 30-45 minutes for a clean rename. Single commit `rename: opencrude -> <chosen>`.
 
 ## What the supervisor's paper recommendation tells us
 

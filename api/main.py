@@ -1,4 +1,4 @@
-"""FastAPI backend for the straitgraph interactive UI.
+"""FastAPI backend for the opencrude interactive UI.
 
 Endpoints:
   GET  /world  - static snapshot of countries, basins, straits with coordinates
@@ -14,7 +14,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from straitgraph import (
+from opencrude import (
     balance_supply_demand,
     build_oil_graph,
     expected_edge_flows,
@@ -42,7 +42,7 @@ def _raw_data():
     )
 
 
-app = FastAPI(title="straitgraph API", version="0.2.0")
+app = FastAPI(title="opencrude API", version="0.2.0")
 
 app.add_middleware(
     CORSMiddleware,

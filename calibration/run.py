@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from straitgraph import (
+from opencrude import (
     balance_supply_demand,
     build_oil_graph,
     expected_edge_flows,
@@ -151,7 +151,7 @@ def _verdict(observed: ObservedMetric, modeled: float) -> str:
 
 def run() -> None:
     print("=" * 78)
-    print(f"{'STRAITGRAPH HISTORICAL CALIBRATION':^78}")
+    print(f"{'OPENCRUDE HISTORICAL CALIBRATION':^78}")
     print("=" * 78)
 
     for ep in EPISODES:

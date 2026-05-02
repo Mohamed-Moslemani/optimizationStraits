@@ -1,6 +1,8 @@
-# straitgraph
+# OpenCrude
 
-Graph-theoretic analysis of the world's maritime straits and the global **crude oil** market that flows through them — with an interactive web UI for exploring what-if scenarios.
+Open-source what-if simulator for the **transport-cost component** of global crude oil prices. Models the world's maritime straits as a network, solves a welfare-maximizing market-clearing LP with elastic demand, and quantifies how chokepoint disruptions, sanctions, or capacity changes shift prices and reroute flows.
+
+This is the open equivalent of closed tools like [oilshock.ai](https://oilshock.ai/#simulator). Per Conlon-Cotter-Eyiah-Donkor (2024)'s "cautionary note" on oil-price forecasting: OpenCrude does **not** claim to forecast Brent. It quantifies the *freight/transport* contribution to delivered prices under specific structural shocks.
 
 ## Model
 
@@ -15,7 +17,7 @@ Graph-theoretic analysis of the world's maritime straits and the global **crude 
 ## Layout
 
 ```
-src/straitgraph/   # Python package: graph, market LP, resilience
+src/opencrude/   # Python package: graph, market LP, resilience
 api/               # FastAPI backend exposing /world and /solve
 web/               # Vite + React + TypeScript + Tailwind + MapLibre UI
 data/              # oil dataset (countries, basins, coastlines, straits)
@@ -56,7 +58,7 @@ Open http://localhost:7010. The map lets you:
 ## Run the CLI demo
 
 ```bash
-.venv/bin/python -m straitgraph.demo
+.venv/bin/python -m opencrude.demo
 ```
 
 ### Sample output
