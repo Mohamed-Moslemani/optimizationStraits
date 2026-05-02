@@ -12,6 +12,7 @@ from .graph import (
     load_straits,
 )
 from .market import MarketSolution, solve_market
+from .prices import brent_at, load_brent_monthly
 from .resilience import strait_importance
 
 __all__ = [
@@ -21,11 +22,13 @@ __all__ = [
     "Country",
     "Strait",
     "MarketSolution",
+    "brent_at",
     "build_oil_graph",
     "balance_supply_demand",
     "expected_edge_flows",
     "load_basins",
     "load_bilateral",
+    "load_brent_monthly",
     "load_coastlines",
     "load_countries",
     "load_straits",

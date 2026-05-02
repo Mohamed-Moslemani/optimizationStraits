@@ -10,7 +10,8 @@ Scope: global **crude oil** seaborne trade, approximate 2023. Focused on methodo
 | `basins.csv` | 14 | Ocean-region waypoints (Persian Gulf, Indian Ocean, Mediterranean, ...) |
 | `coastlines.csv` | 55 | Country ↔ basin adjacency (which basins each country has ports on) |
 | `straits.csv` | 18 | Chokepoints (EIA-tracked) plus alternative routes and open-ocean edges |
-| `bilateral_flows_2023.csv` | 80 | Top exporter→importer pairs in mb/d (UN Comtrade-style) |
+| `bilateral_flows_2023.csv` | 137 | Top exporter→importer pairs in mb/d (UN Comtrade HS 2709) |
+| `brent_monthly_usd.csv` | 467 | EIA monthly Brent spot price 1987–2026 (USD/bbl) |
 
 All flow figures are in **million barrels per day (mb/d)**. Costs (transit_days) are in **days**.
 
@@ -45,6 +46,11 @@ Computed from representative port-to-port sea distances at a VLCC speed of ~14 k
 Coverage: ~28 mb/d total (vs real seaborne crude ~40 mb/d). Gaps are countries that didn't report or hit API rate limits during the run; re-running may capture more. Top pairs match reality within 10-20% (RUS→CHN 2.02, SAU→CHN 1.79, IRQ→CHN 1.17, MEX→USA 0.68, etc.).
 
 **Caveats.** Using CIF/Brent for volume averages over grade differentials (Urals, Dubai, WTI all priced differently). For grade-specific accuracy, use the raw `qty` field — but be aware reporters use mixed units (kg vs kt) for the same `qtyUnitCode=8` field. The fetcher chooses USD-derived volume for cross-country consistency.
+
+### Historical Brent monthly prices
+`brent_monthly_usd.csv` contains EIA's [Europe Brent Spot Price FOB (RBRTE) monthly series](https://www.eia.gov/dnav/pet/hist/rbrteM.htm) from May 1987 to the present. Used by the calibration runner to pin the LP's reference price to the actual monthly Brent at each historical episode's date (instead of the default $85). This honors the data-hygiene point of Conlon, Cotter & Eyiah-Donkor (2024) "Forecasting the price of oil: A cautionary note", J. Commodity Markets — they show that *which* oil price series you use materially changes results.
+
+To refresh: `curl -o /tmp/brent.xls https://www.eia.gov/dnav/pet/hist_xls/RBRTEm.xls && python -c "import pandas as pd; df = pd.read_excel('/tmp/brent.xls', sheet_name='Data 1', skiprows=2); df.columns = ['date','price_usd_per_bbl']; df = df.dropna(); df['period'] = df['date'].dt.strftime('%Y-%m'); df['price_usd_per_bbl'] = df['price_usd_per_bbl'].round(2); df[['period','price_usd_per_bbl']].to_csv('data/brent_monthly_usd.csv', index=False)"`.
 
 ## Caveats (read before citing anything)
 

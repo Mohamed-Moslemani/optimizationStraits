@@ -9,10 +9,12 @@ from pathlib import Path
 
 from opencrude import (
     balance_supply_demand,
+    brent_at,
     build_oil_graph,
     expected_edge_flows,
     load_basins,
     load_bilateral,
+    load_brent_monthly,
     load_coastlines,
     load_countries,
     load_straits,
@@ -154,26 +156,38 @@ def run() -> None:
     print(f"{'OPENCRUDE HISTORICAL CALIBRATION':^78}")
     print("=" * 78)
 
+    brent_path = DATA_DIR / "brent_monthly_usd.csv"
+    brent_series = load_brent_monthly(brent_path) if brent_path.exists() else None
+
     for ep in EPISODES:
-        # Each episode's "base" must use the same elasticity and ship-day cost
-        # as the scenario itself, otherwise we'd attribute parameter changes
-        # to the scenario perturbation. Strip out the strait/country edits.
+        # Period-accurate Brent: pin the reference price to the actual monthly
+        # average at the time of the shock. This honors the data-hygiene point
+        # in Conlon-Cotter-Eyiah-Donkor (2024) and makes deltas comparable to
+        # the literature's reported price moves.
+        scenario = dict(ep.scenario)
+        if ep.brent_period and brent_series is not None:
+            actual_brent = brent_at(brent_series, ep.brent_period)
+            scenario.setdefault("reference_price_usd_per_bbl", actual_brent)
+        # Each episode's "base" must use the same elasticity, ship-day cost,
+        # and (now) reference price as the scenario itself.
         base_scenario = {
             k: v
-            for k, v in ep.scenario.items()
+            for k, v in scenario.items()
             if k in ("demand_elasticity", "ship_day_cost_usd_per_bbl",
                      "reference_price_usd_per_bbl")
         }
         base_sol, base_flows, base_agg = _solve(base_scenario)
-        sol, flows, agg = _solve(ep.scenario)
+        sol, flows, agg = _solve(scenario)
         modeled = _model_metrics(base_sol, base_flows, base_agg, sol, flows, agg)
 
         print()
         print("-" * 78)
         print(f"{ep.name}  ({ep.date})")
         print("-" * 78)
-        print(f"  Scenario: {ep.scenario}")
+        print(f"  Scenario: {scenario}")
         print(f"  Base parameters: {base_scenario}")
+        if ep.brent_period:
+            print(f"  Brent reference for {ep.brent_period}: ${scenario.get('reference_price_usd_per_bbl', 85):.2f}/bbl (EIA monthly)")
         print(f"  Notes:    {ep.description}")
         print(f"  Base avg price: ${base_agg['global_avg_price_usd']:.2f}/bbl   "
               f"Base Cape flow: {base_flows.get('satl_io', 0):.2f} mb/d")

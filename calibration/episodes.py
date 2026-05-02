@@ -55,12 +55,18 @@ class Episode:
     #   cape_diverted_mbd       -> model's increase in satl_io flow vs base
     observed: dict[str, ObservedMetric] = field(default_factory=dict)
     notes: str = ""
+    # Period-accurate Brent reference. If set, the runner pulls actual monthly
+    # Brent from data/brent_monthly_usd.csv and uses it as the LP's reference
+    # price instead of the default $85. Format YYYY-MM. Honors the data-
+    # hygiene point of Conlon-Cotter-Eyiah-Donkor (2024).
+    brent_period: str | None = None
 
 
 EPISODES: list[Episode] = [
     # --------------------------------------------------------------------- #
     Episode(
         id="suez_2021",
+        brent_period="2021-03",
         name="Ever Given Suez blockage",
         date="2021-03-23 to 2021-03-29 (6 days)",
         description=(
@@ -103,6 +109,7 @@ EPISODES: list[Episode] = [
     # --------------------------------------------------------------------- #
     Episode(
         id="russia_2022",
+        brent_period="2022-05",
         name="Russia sanctions, rerouting begins",
         date="2022-Q2 (post-invasion, pre-EU-embargo)",
         description=(
@@ -142,6 +149,7 @@ EPISODES: list[Episode] = [
     # --------------------------------------------------------------------- #
     Episode(
         id="red_sea_2024",
+        brent_period="2024-02",
         name="Red Sea / Bab-el-Mandeb crisis",
         date="2024-Q1",
         description=(
