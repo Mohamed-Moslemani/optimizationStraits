@@ -82,10 +82,10 @@ export const PRESETS: Preset[] = [
     category: "what_if",
     label: "Red Sea — full closure",
     description:
-      "Both Bab el-Mandeb and Suez effectively closed. Tankers reroute via Cape of Good Hope. Calibrated with rigid short-run demand (ε=0.05) and elevated war-risk freight ($2.5/day) so the price impact actually reads.",
+      "Suez + Bab el-Mandeb fully closed. Model's honest verdict: minimal global Brent impact (Saudi reroutes to Asia via Hormuz; Atlantic suppliers cover Europe directly). The visible move is a spread — Atlantic crudes drop, European delivery via Cape gets more expensive.",
     build: () => ({
       ...EMPTY_SCENARIO,
-      strait_capacity_overrides: { bab_el_mandeb: 0.5, suez: 0.5 },
+      strait_capacity_overrides: { bab_el_mandeb: 0.1, suez: 0.1 },
       demand_elasticity: 0.05,
       ship_day_cost_usd_per_bbl: 2.5,
     }),
