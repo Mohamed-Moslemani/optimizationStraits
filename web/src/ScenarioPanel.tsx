@@ -51,8 +51,7 @@ export default function ScenarioPanel({
 
       <SectionHeader title="What-if scenarios" className="mt-6" />
       <p className="mt-1 text-[10px] leading-snug text-slate-500">
-        Synthetic stress tests. Inherit your current Brent / freight /
-        elasticity sliders.
+        Synthetic stress tests with rigid short-run demand baked in.
       </p>
       <div className="mt-2 flex flex-col gap-1.5">
         {PRESETS.filter((p) => p.category === "what_if").map((p) => (
@@ -60,11 +59,17 @@ export default function ScenarioPanel({
             key={p.id}
             preset={p}
             setScenario={setScenario}
-            inheritParams={{
-              reference_price_usd_per_bbl: scenario.reference_price_usd_per_bbl,
-              ship_day_cost_usd_per_bbl: scenario.ship_day_cost_usd_per_bbl,
-              demand_elasticity: scenario.demand_elasticity,
-            }}
+            inheritParams={
+              p.id === "base"
+                ? {
+                    reference_price_usd_per_bbl:
+                      scenario.reference_price_usd_per_bbl,
+                    ship_day_cost_usd_per_bbl:
+                      scenario.ship_day_cost_usd_per_bbl,
+                    demand_elasticity: scenario.demand_elasticity,
+                  }
+                : undefined
+            }
           />
         ))}
       </div>

@@ -82,10 +82,12 @@ export const PRESETS: Preset[] = [
     category: "what_if",
     label: "Red Sea — full closure",
     description:
-      "Both Bab el-Mandeb and Suez effectively closed. Tankers reroute around the Cape of Good Hope.",
+      "Both Bab el-Mandeb and Suez effectively closed. Tankers reroute via Cape of Good Hope. Calibrated with rigid short-run demand (ε=0.05) and elevated war-risk freight ($2.5/day) so the price impact actually reads.",
     build: () => ({
       ...EMPTY_SCENARIO,
       strait_capacity_overrides: { bab_el_mandeb: 0.5, suez: 0.5 },
+      demand_elasticity: 0.05,
+      ship_day_cost_usd_per_bbl: 2.5,
     }),
   },
   {
@@ -93,27 +95,39 @@ export const PRESETS: Preset[] = [
     category: "what_if",
     label: "Close Strait of Hormuz",
     description:
-      "Iran blockades Hormuz. Persian Gulf exports stranded above the East-West Pipeline's 5 mb/d limit.",
-    build: () => ({ ...EMPTY_SCENARIO, closed_straits: ["hormuz"] }),
+      "Iran blockades Hormuz. Persian Gulf exports stranded above the East-West Pipeline's 5 mb/d limit. Rigid demand + war-risk freight to surface the price impact.",
+    build: () => ({
+      ...EMPTY_SCENARIO,
+      closed_straits: ["hormuz"],
+      demand_elasticity: 0.05,
+      ship_day_cost_usd_per_bbl: 2.5,
+    }),
   },
   {
     id: "close_malacca",
     category: "what_if",
     label: "Close Strait of Malacca",
     description:
-      "Incident at the Phillips Channel. Lombok/Sunda absorbs only 3 mb/d of the 13+ mb/d that normally transits Malacca.",
-    build: () => ({ ...EMPTY_SCENARIO, closed_straits: ["malacca"] }),
+      "Incident at the Phillips Channel. Lombok/Sunda absorbs only 3 mb/d of the 13+ mb/d that normally transits Malacca. Rigid demand + war-risk freight to surface the price impact.",
+    build: () => ({
+      ...EMPTY_SCENARIO,
+      closed_straits: ["malacca"],
+      demand_elasticity: 0.05,
+      ship_day_cost_usd_per_bbl: 2.5,
+    }),
   },
   {
     id: "russia_hard",
     category: "what_if",
     label: "Russia — extreme cut",
     description:
-      "Russian production collapses to 3 mb/d; Danish Straits transits drop to a trickle.",
+      "Russian production collapses to 3 mb/d; Danish Straits transits drop to a trickle. Rigid demand + war-risk freight to surface the price impact.",
     build: () => ({
       ...EMPTY_SCENARIO,
       country_production_overrides: { RUS: 3.0 },
       strait_capacity_overrides: { danish_straits: 0.5 },
+      demand_elasticity: 0.05,
+      ship_day_cost_usd_per_bbl: 2.5,
     }),
   },
 ];
