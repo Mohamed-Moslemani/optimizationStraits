@@ -132,58 +132,53 @@ export default function WorldMap({
         data: { type: "FeatureCollection", features: [] },
       });
 
-      // Strait glow (soft halo underneath) — wider, brighter
+      // Flow-magnitude color ramp shared by line, arrow, and glow.
+      // Low flow = blue, high flow = green → lime → amber. Sequential,
+      // perceptually ordered, no opacity tricks. Closed = red, pipeline = brown.
+      const flowColor: maplibregl.ExpressionSpecification = [
+        "case",
+        ["get", "closed"], "#dc2626",
+        ["==", ["get", "kind"], "pipeline"], "#b45309",
+        [
+          "interpolate", ["linear"], ["get", "flow"],
+          0, "#94a3b8",   // slate-400: vanishing flow
+          1, "#2563eb",   // blue-600: small
+          4, "#06b6d4",   // cyan-500: moderate
+          8, "#10b981",   // emerald-500: medium-high
+          13, "#84cc16",  // lime-500: high
+          18, "#f59e0b",  // amber-500: very high (Hormuz, Malacca)
+        ],
+      ];
+
+      // Strait glow — narrower, brighter; matches line color so the halo
+      // reinforces the flow ramp rather than muddying it.
       map.addLayer({
         id: "strait-glow",
         type: "line",
         source: "straits",
         layout: { "line-join": "round", "line-cap": "round" },
         paint: {
-          "line-color": [
-            "case",
-            ["get", "closed"], "#dc2626",
-            ["==", ["get", "kind"], "pipeline"], "#92400e",
-            ["==", ["get", "kind"], "chokepoint"],
-            [
-              "interpolate", ["linear"], ["get", "utilisation"],
-              0, "#0ea5e9",     // sky-500: low util = ocean blue (peaceful)
-              0.5, "#f59e0b",   // amber-500: medium = warming
-              1, "#dc2626",     // red-600: at capacity = stress
-            ],
-            "#0ea5e9",
-          ],
+          "line-color": flowColor,
           "line-width": [
             "interpolate", ["linear"], ["get", "flow"],
-            0, 4, 5, 12, 15, 22, 25, 30,
+            0, 3, 5, 9, 15, 16, 25, 22,
           ],
-          "line-opacity": 0.22,
-          "line-blur": 10,
+          "line-opacity": 0.35,
+          "line-blur": 6,
         },
       });
 
-      // Main strait line — bolder, with line-gradient (origin→dest direction read)
+      // Main strait line — bold, full opacity, flow-magnitude colored
       map.addLayer({
         id: "strait-lines",
         type: "line",
         source: "straits",
         layout: { "line-join": "round", "line-cap": "round" },
         paint: {
-          "line-color": [
-            "case",
-            ["get", "closed"], "#dc2626",
-            ["==", ["get", "kind"], "pipeline"], "#b45309",
-            ["==", ["get", "kind"], "chokepoint"],
-            [
-              "interpolate", ["linear"], ["get", "utilisation"],
-              0, "#0284c7",   // sky-600: low util
-              0.5, "#ea580c", // orange-600: medium
-              1, "#b91c1c",   // red-700: critical
-            ],
-            "#0284c7",
-          ],
+          "line-color": flowColor,
           "line-width": [
             "interpolate", ["linear"], ["get", "flow"],
-            0, 1.5, 5, 3.0, 15, 5.0, 25, 7.0,
+            0, 2.0, 5, 4.0, 15, 6.5, 25, 9.0,
           ],
           "line-dasharray": [
             "case",
@@ -195,32 +190,48 @@ export default function WorldMap({
         },
       });
 
-      // Direction arrows along high-flow straits
+      // Capacity-stress overlay — when utilisation ≥ 0.85, paint a thin red
+      // co-stroke so the flow color stays informative while critical lanes
+      // still scream "this is binding".
+      map.addLayer({
+        id: "strait-stress",
+        type: "line",
+        source: "straits",
+        filter: [">=", ["get", "utilisation"], 0.85],
+        layout: { "line-join": "round", "line-cap": "round" },
+        paint: {
+          "line-color": "#dc2626",
+          "line-width": 1.5,
+          "line-dasharray": [2, 2],
+          "line-opacity": 0.9,
+        },
+      });
+
+      // Direction arrows — large, full opacity, flow-magnitude colored
       map.addLayer({
         id: "strait-arrows",
         type: "symbol",
         source: "straits",
-        filter: [">", ["get", "flow"], 1.0],
+        filter: [">", ["get", "flow"], 0.3],
         layout: {
           "symbol-placement": "line",
-          "symbol-spacing": 110,
-          "text-field": "▶",
-          "text-size": 12,
+          "symbol-spacing": 80,
+          "text-field": "➤",
+          "text-size": [
+            "interpolate", ["linear"], ["get", "flow"],
+            0.3, 13, 4, 18, 10, 24, 18, 30,
+          ],
           "text-keep-upright": false,
           "text-rotation-alignment": "map",
           "text-allow-overlap": true,
           "text-ignore-placement": true,
         },
         paint: {
-          "text-color": [
-            "case",
-            ["get", "closed"], "#7f1d1d",
-            ["==", ["get", "kind"], "pipeline"], "#78350f",
-            "#0c4a6e",
-          ],
+          "text-color": flowColor,
           "text-halo-color": "#ffffff",
-          "text-halo-width": 1.6,
-          "text-opacity": 0.85,
+          "text-halo-width": 2.5,
+          "text-halo-blur": 0.3,
+          "text-opacity": 1.0,
         },
       });
 
@@ -428,23 +439,31 @@ function MapLegend() {
         <span>importer (net demand)</span>
       </div>
       <div className="mt-3 mb-0.5 text-[9px] font-semibold uppercase tracking-wider text-slate-500">
-        Strait flow / utilisation
+        Flow (mb/d)
       </div>
-      <div className="flex items-center gap-2">
-        <span className="inline-block h-1 w-7 bg-sky-600" />
-        <span>flowing freely</span>
+      <div className="mb-1 flex items-center gap-2">
+        <span
+          className="inline-block h-2 w-28 rounded-sm"
+          style={{
+            background:
+              "linear-gradient(to right, #94a3b8 0%, #2563eb 12%, #06b6d4 30%, #10b981 50%, #84cc16 72%, #f59e0b 100%)",
+          }}
+        />
+      </div>
+      <div className="flex justify-between text-[10px] text-slate-600" style={{ width: "112px" }}>
+        <span>0</span>
+        <span>4</span>
+        <span>8</span>
+        <span>13</span>
+        <span>18+</span>
+      </div>
+      <div className="mt-2 flex items-center gap-2">
+        <span className="text-[#10b981]">➤</span>
+        <span>direction of flow</span>
       </div>
       <div className="mt-1 flex items-center gap-2">
-        <span className="inline-block h-1.5 w-7 bg-orange-600" />
-        <span>medium pressure</span>
-      </div>
-      <div className="mt-1 flex items-center gap-2">
-        <span className="inline-block h-2 w-7 bg-red-700" />
-        <span>near capacity</span>
-      </div>
-      <div className="mt-1.5 flex items-center gap-2">
-        <span className="inline-block h-0.5 w-7 border-t border-dashed border-sky-600" />
-        <span>open ocean</span>
+        <span className="inline-block h-1 w-7 bg-red-600" />
+        <span>closed / at capacity</span>
       </div>
       <div className="mt-1 flex items-center gap-2">
         <span className="inline-block h-0.5 w-7 border-t-2 border-dotted border-amber-700" />
